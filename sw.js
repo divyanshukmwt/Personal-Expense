@@ -1,9 +1,9 @@
-const CACHE_NAME = 'tappy-ios-pwa-v10';
+const CACHE_NAME = 'tappy-ios-pwa-v11';
 const ASSETS = [
   './',
   './index.html',
   './styles.css',
-  './app.js',
+  './client.js',
   './db.js',
   './manifest.json',
   './icons/icon-180.png',

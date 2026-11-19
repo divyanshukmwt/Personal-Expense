@@ -12,7 +12,7 @@ const STATIC_FILES = {
   '/': path.join(__dirname, 'index.html'),
   '/index.html': path.join(__dirname, 'index.html'),
   '/styles.css': path.join(__dirname, 'styles.css'),
-  '/app.js': path.join(__dirname, 'app.js'),
+  '/client.js': path.join(__dirname, 'client.js'),
   '/db.js': path.join(__dirname, 'db.js'),
   '/sw.js': path.join(__dirname, 'sw.js'),
   '/manifest.json': path.join(__dirname, 'manifest.json'),
