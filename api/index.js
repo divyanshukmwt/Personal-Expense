@@ -19,32 +19,7 @@ const DEFAULT_CATEGORIES = [
   { id: 'cat_emi', name: 'EMI', emoji: '🧾', color: '#E8A84E', order: 7 }
 ];
 
-const INITIAL_CSV_EXPENSES = [
-  { date: '2026-11-19', time: '22:24', category: 'Other', amount: 250.00, note: 'Babu' },
-  { date: '2026-11-19', time: '19:41', category: 'Transport', amount: 200.00, note: 'Petrol' },
-  { date: '2026-11-19', time: '10:57', category: 'Food', amount: 100.00, note: 'Kele pyaaz' },
-  { date: '2026-11-19', time: '10:51', category: 'Food', amount: 160.00, note: 'Pohe' },
-  { date: '2026-11-19', time: '00:18', category: 'Shopping', amount: 2500.00, note: 'Blazer' },
-  { date: '2026-11-17', time: '21:22', category: 'Food', amount: 20.00, note: 'Bread' },
-  { date: '2026-11-17', time: '21:21', category: 'Food', amount: 20.00, note: 'Mufali' },
-  { date: '2026-11-17', time: '21:21', category: 'Food', amount: 155.00, note: 'Eggs' },
-  { date: '2026-11-16', time: '19:26', category: 'Food', amount: 50.00, note: 'Monish ko kele ke' },
-  { date: '2026-11-16', time: '13:32', category: 'Transport', amount: 20.00, note: 'parking' },
-  { date: '2026-11-15', time: '19:46', category: 'Health', amount: 600.00, note: 'Loki ear medicine' },
-  { date: '2026-11-13', time: '22:44', category: 'Other', amount: 50.00, note: 'Monish govind dev ji ' },
-  { date: '2026-11-13', time: '19:27', category: 'Food', amount: 60.00, note: 'Kele' },
-  { date: '2026-11-12', time: '17:05', category: 'Transport', amount: 200.00, note: 'Petrol' },
-  { date: '2026-11-08', time: '17:05', category: 'Other', amount: 100.00, note: 'Monish - krish 100 rupee' },
-  { date: '2026-11-08', time: '17:04', category: 'Food', amount: 150.00, note: 'Geeta kirana pooja saman' },
-  { date: '2026-11-08', time: '17:03', category: 'Food', amount: 500.00, note: 'Shiv shakti mithai' },
-  { date: '2026-11-08', time: '17:03', category: 'Food', amount: 200.00, note: 'Cold coffee late night' },
-  { date: '2026-11-07', time: '17:03', category: 'Food', amount: 47.00, note: 'Nitya bhaiya' },
-  { date: '2026-11-04', time: '17:02', category: 'Food', amount: 380.00, note: 'Cake anniversary' },
-  { date: '2026-11-04', time: '17:01', category: 'Other', amount: 395.00, note: 'Unknown cash' },
-  { date: '2026-11-03', time: '17:00', category: 'Food', amount: 30.00, note: 'Kele' },
-  { date: '2026-11-02', time: '16:56', category: 'Transport', amount: 200.00, note: 'Petrol' },
-  { date: '2026-11-01', time: '17:00', category: 'Other', amount: 340.00, note: 'Press ke kapde' }
-];
+const INITIAL_CSV_EXPENSES = [];
 
 // In-memory state cache for warm serverless instances
 let memoryState = null;
