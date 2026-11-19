@@ -577,8 +577,127 @@
   }
 
   // ==========================================================================
-  // SCREEN 3: "ANALYTICS" -> "Spending" Screen (Exact Match with Screenshot)
+  // SCREEN 3: "ANALYTICS" -> "Spending" Screen + Interactive Charts
   // ==========================================================================
+  function renderSpendingChart(period, periodExpenses, totalSpent, dailyAvg, now) {
+    const titleEl = document.getElementById('spending-chart-title');
+    const subEl = document.getElementById('spending-chart-sub');
+    const calloutEl = document.getElementById('spending-chart-callout');
+    const stageEl = document.getElementById('spending-bars-stage');
+    const avgLineEl = document.getElementById('spending-avg-line');
+    const avgTagEl = document.getElementById('spending-avg-tag');
+    if (!stageEl) return;
+
+    stageEl.innerHTML = '';
+    const y = now.getFullYear();
+    const m = now.getMonth();
+    const d = now.getDate();
+
+    const buckets = [];
+
+    if (period === 'week') {
+      titleEl.textContent = '7-Day Spending Trend';
+      const startDt = new Date(y, m, d - 6);
+      subEl.textContent = `${startDt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${now.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+
+      for (let i = 6; i >= 0; i--) {
+        const dt = new Date(y, m, d - i);
+        const s = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), 0, 0, 0).getTime();
+        const e = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate() + 1, 0, 0, 0).getTime();
+        const val = periodExpenses
+          .filter((exp) => exp.timestamp >= s && exp.timestamp < e)
+          .reduce((sum, exp) => sum + exp.amount, 0);
+
+        buckets.push({
+          label: dt.toLocaleDateString('en-US', { weekday: 'short' }),
+          fullLabel: dt.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }),
+          value: val,
+          active: i === 0
+        });
+      }
+    } else if (period === 'month') {
+      const monthName = now.toLocaleDateString('en-US', { month: 'short' });
+      const daysInMonth = new Date(y, m + 1, 0).getDate();
+      titleEl.textContent = 'Daily Spending Trend';
+      subEl.textContent = `${monthName} 1 – ${monthName} ${daysInMonth} • Tap any bar`;
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const s = new Date(y, m, day, 0, 0, 0).getTime();
+        const e = new Date(y, m, day + 1, 0, 0, 0).getTime();
+        const val = periodExpenses
+          .filter((exp) => exp.timestamp >= s && exp.timestamp < e)
+          .reduce((sum, exp) => sum + exp.amount, 0);
+
+        const showTick = day === 1 || day % 5 === 0 || day === daysInMonth;
+        buckets.push({
+          label: showTick ? String(day) : '',
+          fullLabel: `${monthName} ${day}`,
+          value: val,
+          active: day === d
+        });
+      }
+    } else {
+      // Year mode: 12 months
+      titleEl.textContent = 'Monthly Spending Trend';
+      subEl.textContent = `Jan ${y} – Dec ${y} • Tap any bar`;
+      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+      monthNames.forEach((mName, mIdx) => {
+        const s = new Date(y, mIdx, 1, 0, 0, 0).getTime();
+        const e = new Date(y, mIdx + 1, 1, 0, 0, 0).getTime();
+        const val = periodExpenses
+          .filter((exp) => exp.timestamp >= s && exp.timestamp < e)
+          .reduce((sum, exp) => sum + exp.amount, 0);
+
+        buckets.push({
+          label: mName.slice(0, 1),
+          fullLabel: `${mName} ${y}`,
+          value: val,
+          active: mIdx === m
+        });
+      });
+    }
+
+    const maxVal = Math.max(...buckets.map((b) => b.value), 1);
+    const activeBucket = buckets.find((b) => b.active) || buckets[buckets.length - 1];
+    calloutEl.textContent = activeBucket
+      ? `${activeBucket.fullLabel}: ${formatCurrency(activeBucket.value)}`
+      : formatCurrency(totalSpent);
+
+    // Position Horizontal Dashed Average Guide Line
+    const avgMetric = period === 'year' ? Math.round(totalSpent / 12) : dailyAvg;
+    if (totalSpent > 0 && avgMetric > 0) {
+      const pctFromBottom = Math.min(92, Math.max(12, Math.round((avgMetric / maxVal) * 82) + 14));
+      avgLineEl.style.bottom = `${pctFromBottom}%`;
+      avgLineEl.classList.remove('hidden');
+      avgTagEl.textContent = `avg ${formatCurrency(avgMetric)}`;
+    } else {
+      avgLineEl.classList.add('hidden');
+    }
+
+    buckets.forEach((b) => {
+      const col = document.createElement('div');
+      col.className = `spending-bar-col${b.value > 0 ? ' has-spend' : ''}${b.active ? ' active' : ''}`;
+      const heightPct = b.value > 0 ? Math.max(8, Math.round((b.value / maxVal) * 100)) : 4;
+
+      col.innerHTML = `
+        <div class="spending-bar-track">
+          <div class="spending-bar-fill" style="height: ${heightPct}%"></div>
+        </div>
+        <span class="spending-bar-label">${b.label}</span>
+      `;
+
+      col.addEventListener('click', () => {
+        triggerClick('tap');
+        stageEl.querySelectorAll('.spending-bar-col').forEach((el) => el.classList.remove('active'));
+        col.classList.add('active');
+        calloutEl.textContent = `${b.fullLabel}: ${formatCurrency(b.value)}`;
+      });
+
+      stageEl.appendChild(col);
+    });
+  }
+
   function renderSpendingView() {
     const period = ui.spendingPeriod;
     document.querySelectorAll('#spending-period-pills .spending-period-pill').forEach((btn) => {
@@ -649,9 +768,14 @@
     document.getElementById('spending-pace-amount').textContent = formatCurrency(onPaceFor);
     document.getElementById('spending-daily-avg').textContent = `${formatCurrency(dailyAvg)}/day average`;
 
+    // Interactive Spending Trend Bar Chart (Week / Month / Year)
+    renderSpendingChart(period, periodExpenses, totalSpent, dailyAvg, now);
+
     // By Category Breakdown Card
     const catListEl = document.getElementById('spending-category-list');
     catListEl.innerHTML = '';
+    const stackedBarEl = document.getElementById('spending-stacked-bar');
+    if (stackedBarEl) stackedBarEl.innerHTML = '';
 
     if (periodExpenses.length === 0 || totalSpent <= 0) {
       catListEl.innerHTML = `<div class="empty-placeholder" style="padding: 24px 0;">No expenses in this period yet.</div>`;
@@ -671,9 +795,22 @@
         category: getCategoryById(catId),
         amount: data.amount,
         items: data.items,
-        pct: Math.round((data.amount / totalSpent) * 100)
+        pct: Math.round((data.amount / totalSpent) * 100),
+        exactPct: (data.amount / totalSpent) * 100
       }))
       .sort((a, b) => b.amount - a.amount);
+
+    // Render Stacked Multi-Category Bar inside Chart Card
+    if (stackedBarEl) {
+      ranked.forEach((row) => {
+        const seg = document.createElement('div');
+        seg.className = 'stacked-bar-seg';
+        seg.style.width = `${Math.max(3, row.exactPct)}%`;
+        seg.style.background = row.category.color;
+        seg.title = `${row.category.name}: ${row.pct}%`;
+        stackedBarEl.appendChild(seg);
+      });
+    }
 
     ranked.forEach((row) => {
       const itemEl = document.createElement('div');
@@ -1756,9 +1893,9 @@
         document.documentElement.style.setProperty('--portrait-lock-angle', '-90deg');
       } else if (angle === -90 || angle === 270) {
         document.documentElement.style.setProperty('--portrait-lock-angle', '90deg');
-      } else {
-        document.documentElement.style.setProperty('--portrait-lock-angle', '0deg');
       }
+      // Note: Do NOT reset --portrait-lock-angle to 0deg when returning to portrait;
+      // keeping it at +/-90deg prevents a 1-frame snap while @media (orientation: landscape) unmatches.
     };
 
     enforcePortraitLock();
