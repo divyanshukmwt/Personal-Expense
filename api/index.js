@@ -205,7 +205,14 @@ async function apiHandler(req, res) {
       const incoming = JSON.parse(raw);
       const current = loadServerState();
       if (Array.isArray(incoming.categories)) current.categories = incoming.categories;
-      if (Array.isArray(incoming.expenses)) current.expenses = incoming.expenses;
+      if (Array.isArray(incoming.deletedIds)) {
+        const mergedDel = new Set([...(current.deletedIds || []), ...incoming.deletedIds]);
+        current.deletedIds = Array.from(mergedDel);
+      }
+      if (Array.isArray(incoming.expenses)) {
+        const delSet = new Set(current.deletedIds || []);
+        current.expenses = incoming.expenses.filter((e) => !delSet.has(e.id));
+      }
       if (incoming.settings) current.settings = { ...current.settings, ...incoming.settings };
       saveServerState(current);
       return sendJSON(res, 200, { ok: true, state: current });

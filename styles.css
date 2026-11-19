@@ -614,28 +614,61 @@ input[type="number"] {
   color: #5C5C62;
 }
 
-/* Swipeable Expense Row */
+/* Swipeable Expense Row (Supports Swipe Left & Swipe Right for Edit / Delete) */
 .expense-swipe-wrap {
   position: relative;
   overflow: hidden;
   border-bottom: 0.5px solid #18181B;
 }
 
-.expense-delete-action {
+.swipe-actions-left,
+.swipe-actions-right {
   position: absolute;
   top: 0;
-  right: 0;
   bottom: 0;
-  width: 84px;
-  background: var(--tappy-red);
-  color: #FFFFFF;
+  width: 144px;
+  display: flex;
+  align-items: stretch;
+  z-index: 1;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.14s ease;
+}
+
+.swipe-actions-left {
+  left: 0;
+}
+
+.swipe-actions-right {
+  right: 0;
+}
+
+.swipe-actions-left.visible,
+.swipe-actions-right.visible {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.swipe-action-btn {
+  flex: 1;
+  height: 100%;
   font-size: 13px;
   font-weight: 600;
+  color: #FFFFFF;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 1;
+}
+
+.swipe-btn-edit {
+  background: #2C2E38;
+  color: #FFFFFF;
+}
+
+.swipe-btn-delete {
+  background: var(--tappy-red);
+  color: #FFFFFF;
 }
 
 .expense-item-row {

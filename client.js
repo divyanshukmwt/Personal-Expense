@@ -412,19 +412,44 @@
     return storage.state.expenses.filter((e) => e.timestamp >= startTs);
   }
 
-  function attachSwipeDelete(wrapEl, rowEl, expense) {
+  let activeSwipeCloseFn = null;
+
+  function attachSwipeActions(wrapEl, rowEl, leftActionsEl, rightActionsEl) {
     let startX = 0;
     let startY = 0;
+    let baseOffset = 0;
     let currentX = 0;
     let dragging = false;
-    let isOpen = false;
+    let movedHorizontally = false;
+
+    const ACTION_WIDTH = 144;
+
+    const setOffset = (x, animate = true) => {
+      currentX = x;
+      rowEl.style.transition = animate ? 'transform 0.22s cubic-bezier(0.22, 1, 0.36, 1)' : 'none';
+      rowEl.style.transform = `translateX(${x}px)`;
+      leftActionsEl.classList.toggle('visible', x > 4);
+      rightActionsEl.classList.toggle('visible', x < -4);
+    };
+
+    const closeRow = () => {
+      baseOffset = 0;
+      setOffset(0, true);
+      if (activeSwipeCloseFn === closeRow) {
+        activeSwipeCloseFn = null;
+      }
+    };
 
     rowEl.addEventListener('touchstart', (e) => {
       if (e.touches.length !== 1) return;
+      if (activeSwipeCloseFn && activeSwipeCloseFn !== closeRow) {
+        activeSwipeCloseFn();
+      }
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
-      currentX = isOpen ? -84 : 0;
+      currentX = baseOffset;
       dragging = true;
+      movedHorizontally = false;
       rowEl.style.transition = 'none';
     }, { passive: true });
 
@@ -433,34 +458,43 @@
       const dx = e.touches[0].clientX - startX;
       const dy = e.touches[0].clientY - startY;
 
-      if (Math.abs(dy) > Math.abs(dx) && Math.abs(dx) < 12) {
+      if (!movedHorizontally && Math.abs(dy) > Math.abs(dx) && Math.abs(dx) < 12) {
         dragging = false;
-        rowEl.style.transition = '';
-        rowEl.style.transform = isOpen ? 'translateX(-84px)' : 'translateX(0)';
+        setOffset(baseOffset, true);
         return;
       }
 
-      const nextX = Math.min(0, Math.max(-150, (isOpen ? -84 : 0) + dx));
-      currentX = nextX;
-      rowEl.style.transform = `translateX(${nextX}px)`;
+      if (Math.abs(dx) > 8) {
+        movedHorizontally = true;
+      }
+
+      // Clamp between -160px (swipe left -> right buttons) and +160px (swipe right -> left buttons)
+      const nextX = Math.max(-160, Math.min(160, baseOffset + dx));
+      setOffset(nextX, false);
     }, { passive: true });
 
     rowEl.addEventListener('touchend', () => {
       if (!dragging) return;
       dragging = false;
-      rowEl.style.transition = 'transform 0.22s cubic-bezier(0.22, 1, 0.36, 1)';
 
-      if (currentX < -125) {
-        rowEl.style.transform = 'translateX(-100%)';
-        deleteExpenseWithUndo(expense);
-      } else if (currentX < -38) {
-        isOpen = true;
-        rowEl.style.transform = 'translateX(-84px)';
+      // Never auto-delete on swipe! Only snap open to show Edit & Delete buttons on that side
+      if (currentX <= -40) {
+        baseOffset = -ACTION_WIDTH;
+        setOffset(-ACTION_WIDTH, true);
+        activeSwipeCloseFn = closeRow;
+      } else if (currentX >= 40) {
+        baseOffset = ACTION_WIDTH;
+        setOffset(ACTION_WIDTH, true);
+        activeSwipeCloseFn = closeRow;
       } else {
-        isOpen = false;
-        rowEl.style.transform = 'translateX(0)';
+        closeRow();
       }
     });
+
+    return {
+      closeRow,
+      isOpen: () => baseOffset !== 0 || movedHorizontally
+    };
   }
 
   async function deleteExpenseWithUndo(expense) {
@@ -471,7 +505,7 @@
     renderSpendingView();
 
     showToast(`Deleted ${formatCurrency(removed.amount)}`, async () => {
-      await storage.addExpense(removed);
+      await storage.restoreExpense(removed);
       renderHistoryView();
       renderSpendingView();
     });
@@ -533,14 +567,21 @@
         const wrap = document.createElement('div');
         wrap.className = 'expense-swipe-wrap';
 
-        const delBtn = document.createElement('button');
-        delBtn.type = 'button';
-        delBtn.className = 'expense-delete-action';
-        delBtn.textContent = 'Delete';
-        delBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          deleteExpenseWithUndo(exp);
-        });
+        // Left action drawer (revealed when swiping right)
+        const leftActions = document.createElement('div');
+        leftActions.className = 'swipe-actions-left';
+        leftActions.innerHTML = `
+          <button type="button" class="swipe-action-btn swipe-btn-edit">Edit</button>
+          <button type="button" class="swipe-action-btn swipe-btn-delete">Delete</button>
+        `;
+
+        // Right action drawer (revealed when swiping left)
+        const rightActions = document.createElement('div');
+        rightActions.className = 'swipe-actions-right';
+        rightActions.innerHTML = `
+          <button type="button" class="swipe-action-btn swipe-btn-edit">Edit</button>
+          <button type="button" class="swipe-action-btn swipe-btn-delete">Delete</button>
+        `;
 
         const row = document.createElement('div');
         row.className = 'expense-item-row';
@@ -564,10 +605,32 @@
           </div>
         `;
 
-        row.addEventListener('click', () => openEditExpenseModal(exp.id));
-        attachSwipeDelete(wrap, row, exp);
+        const swipeCtrl = attachSwipeActions(wrap, row, leftActions, rightActions);
 
-        wrap.appendChild(delBtn);
+        // Bind Edit & Delete buttons on both sides
+        [leftActions, rightActions].forEach((drawer) => {
+          drawer.querySelector('.swipe-btn-edit').addEventListener('click', (e) => {
+            e.stopPropagation();
+            swipeCtrl.closeRow();
+            openEditExpenseModal(exp.id);
+          });
+          drawer.querySelector('.swipe-btn-delete').addEventListener('click', (e) => {
+            e.stopPropagation();
+            swipeCtrl.closeRow();
+            deleteExpenseWithUndo(exp);
+          });
+        });
+
+        row.addEventListener('click', () => {
+          if (swipeCtrl.isOpen()) {
+            swipeCtrl.closeRow();
+            return;
+          }
+          openEditExpenseModal(exp.id);
+        });
+
+        wrap.appendChild(leftActions);
+        wrap.appendChild(rightActions);
         wrap.appendChild(row);
         groupEl.appendChild(wrap);
       });
@@ -1731,11 +1794,16 @@
 
     document.getElementById('clear-all-data-btn').addEventListener('click', async () => {
       const backup = [...storage.state.expenses];
+      const prevDeleted = [...(storage.state.deletedIds || [])];
+      storage.state.deletedIds = Array.from(
+        new Set([...prevDeleted, ...backup.map((e) => e.id)])
+      );
       storage.state.expenses = [];
       await storage.saveState();
       renderHistoryView();
       renderSpendingView();
       showToast('All expenses cleared', async () => {
+        storage.state.deletedIds = prevDeleted;
         storage.state.expenses = backup;
         await storage.saveState();
         renderHistoryView();

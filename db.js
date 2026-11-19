@@ -85,6 +85,7 @@ class TappyStorage {
     this.state = {
       categories: [...DEFAULT_CATEGORIES],
       expenses: [],
+      deletedIds: [],
       settings: { ...DEFAULT_SETTINGS }
     };
   }
@@ -106,6 +107,7 @@ class TappyStorage {
         if (parsed && Array.isArray(parsed.categories) && Array.isArray(parsed.expenses)) {
           this.state.categories = parsed.categories.sort((a, b) => a.order - b.order);
           this.state.expenses = parsed.expenses.sort((a, b) => b.timestamp - a.timestamp);
+          this.state.deletedIds = Array.isArray(parsed.deletedIds) ? parsed.deletedIds : [];
           this.state.settings = { ...DEFAULT_SETTINGS, ...(parsed.settings || {}) };
           mirrorLoaded = true;
         }
@@ -127,6 +129,9 @@ class TappyStorage {
       if (idbData.categories.length > 0 || idbData.expenses.length > 0) {
         this.state.categories = idbData.categories.sort((a, b) => a.order - b.order);
         this.state.expenses = idbData.expenses.sort((a, b) => b.timestamp - a.timestamp);
+        if (Array.isArray(idbData.deletedIds) && idbData.deletedIds.length > 0) {
+          this.state.deletedIds = Array.from(new Set([...(this.state.deletedIds || []), ...idbData.deletedIds]));
+        }
         if (idbData.settings) {
           this.state.settings = { ...DEFAULT_SETTINGS, ...idbData.settings };
         }
@@ -158,18 +163,47 @@ class TappyStorage {
       const serverState = await res.json();
       if (!serverState || !Array.isArray(serverState.expenses)) return false;
 
-      // Merge server expenses with local expenses by ID so silent Back-Tap logs appear immediately
+      if (!Array.isArray(this.state.deletedIds)) {
+        this.state.deletedIds = [];
+      }
+      if (Array.isArray(serverState.deletedIds)) {
+        serverState.deletedIds.forEach((id) => {
+          if (!this.state.deletedIds.includes(id)) {
+            this.state.deletedIds.push(id);
+          }
+        });
+      }
+
+      const deletedSet = new Set(this.state.deletedIds);
       const localMap = new Map(this.state.expenses.map((e) => [e.id, e]));
       let addedNew = false;
+      let serverHasDeleted = false;
+
+      // Remove any locally present item that was marked deleted
+      for (const id of deletedSet) {
+        if (localMap.has(id)) {
+          localMap.delete(id);
+          addedNew = true;
+        }
+      }
 
       serverState.expenses.forEach((se) => {
+        if (deletedSet.has(se.id)) {
+          serverHasDeleted = true;
+          return;
+        }
         if (!localMap.has(se.id)) {
           localMap.set(se.id, se);
           addedNew = true;
         }
       });
 
-      if (addedNew || this.state.expenses.length === 0) {
+      if (serverHasDeleted) {
+        // Tell this server instance about our deletedIds so it purges them too
+        this.pushToServer();
+      }
+
+      if (addedNew || (this.state.expenses.length === 0 && localMap.size > 0)) {
         this.state.expenses = Array.from(localMap.values()).sort((a, b) => b.timestamp - a.timestamp);
         this.syncMirror();
         await this.writeAllToIDB();
@@ -216,16 +250,18 @@ class TappyStorage {
 
   readAllFromIDB() {
     return new Promise((resolve, reject) => {
-      if (!this.db) return resolve({ categories: [], expenses: [], settings: null });
+      if (!this.db) return resolve({ categories: [], expenses: [], deletedIds: [], settings: null });
       const tx = this.db.transaction(['categories', 'expenses', 'meta'], 'readonly');
       const catReq = tx.objectStore('categories').getAll();
       const expReq = tx.objectStore('expenses').getAll();
       const metaReq = tx.objectStore('meta').get('settings');
+      const delReq = tx.objectStore('meta').get('deletedIds');
 
       tx.oncomplete = () => {
         resolve({
           categories: catReq.result || [],
           expenses: expReq.result || [],
+          deletedIds: delReq.result ? delReq.result.value : [],
           settings: metaReq.result ? metaReq.result.value : null
         });
       };
@@ -248,6 +284,7 @@ class TappyStorage {
         this.state.categories.forEach((c) => catStore.put(c));
         this.state.expenses.forEach((e) => expStore.put(e));
         metaStore.put({ key: 'settings', value: this.state.settings });
+        metaStore.put({ key: 'deletedIds', value: this.state.deletedIds || [] });
 
         tx.oncomplete = () => resolve();
         tx.onerror = () => resolve();
@@ -308,8 +345,28 @@ class TappyStorage {
     const idx = this.state.expenses.findIndex((e) => e.id === id);
     if (idx === -1) return null;
     const [removed] = this.state.expenses.splice(idx, 1);
+    if (!Array.isArray(this.state.deletedIds)) {
+      this.state.deletedIds = [];
+    }
+    if (!this.state.deletedIds.includes(id)) {
+      this.state.deletedIds.push(id);
+    }
     await this.saveState();
     return removed;
+  }
+
+  async restoreExpense(expense) {
+    if (!expense || !expense.id) return null;
+    if (Array.isArray(this.state.deletedIds)) {
+      this.state.deletedIds = this.state.deletedIds.filter((id) => id !== expense.id);
+    }
+    const exists = this.state.expenses.some((e) => e.id === expense.id);
+    if (!exists) {
+      this.state.expenses.unshift(expense);
+      this.state.expenses.sort((a, b) => b.timestamp - a.timestamp);
+    }
+    await this.saveState();
+    return expense;
   }
 
   async saveCategory(catData) {
