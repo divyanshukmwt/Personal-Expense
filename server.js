@@ -84,18 +84,17 @@ function getLocalIP() {
   return 'localhost';
 }
 
-if (require.main === module) {
-  const server = http.createServer(requestHandler);
-  server.listen(PORT, '0.0.0.0', () => {
-    const ip = getLocalIP();
-    console.log('\n======================================================');
-    console.log(' 🍏 Tappy — iOS Daily Expense Tracker PWA is running!');
-    console.log('======================================================');
-    console.log(` • Local PC/Mac:          http://localhost:${PORT}`);
-    console.log(` • iPhone 14 Pro Max:     http://${ip}:${PORT}`);
-    console.log(` • Silent Back-Tap API:   http://${ip}:${PORT}/api/log`);
-    console.log('======================================================\n');
-  });
-}
+const server = http.createServer(requestHandler);
 
-module.exports = requestHandler;
+server.listen(PORT, '0.0.0.0', () => {
+  const ip = getLocalIP();
+  console.log('\n======================================================');
+  console.log(' 🍏 Tappy — iOS Daily Expense Tracker PWA is running!');
+  console.log('======================================================');
+  console.log(` • Local PC/Mac:          http://localhost:${PORT}`);
+  console.log(` • iPhone 14 Pro Max:     http://${ip}:${PORT}`);
+  console.log(` • Silent Back-Tap API:   http://${ip}:${PORT}/api/log`);
+  console.log('======================================================\n');
+});
+
+module.exports = server;
