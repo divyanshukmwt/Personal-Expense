@@ -1742,6 +1742,32 @@
     });
     setInterval(syncSilentLogs, 3000);
 
+    // Enforce Portrait Mode Lock on iOS / Mobile Landscape Rotation
+    const enforcePortraitLock = () => {
+      if (screen.orientation && screen.orientation.lock) {
+        screen.orientation.lock('portrait-primary').catch(() => {});
+      }
+      const angle =
+        (screen.orientation && typeof screen.orientation.angle === 'number')
+          ? screen.orientation.angle
+          : (typeof window.orientation === 'number' ? window.orientation : 0);
+
+      if (angle === 90) {
+        document.documentElement.style.setProperty('--portrait-lock-angle', '-90deg');
+      } else if (angle === -90 || angle === 270) {
+        document.documentElement.style.setProperty('--portrait-lock-angle', '90deg');
+      } else {
+        document.documentElement.style.setProperty('--portrait-lock-angle', '0deg');
+      }
+    };
+
+    enforcePortraitLock();
+    window.addEventListener('orientationchange', enforcePortraitLock);
+    window.addEventListener('resize', enforcePortraitLock);
+    if (screen.orientation && screen.orientation.addEventListener) {
+      screen.orientation.addEventListener('change', enforcePortraitLock);
+    }
+
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js').catch(() => {});

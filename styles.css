@@ -84,7 +84,8 @@ input[type="number"] {
   overflow: hidden;
 }
 
-@media (min-width: 520px) {
+/* Desktop preview frame (only on desktop/laptop pointers, never on iPhone touch screens) */
+@media (min-width: 520px) and (hover: hover) and (pointer: fine) {
   body {
     display: flex;
     align-items: center;
@@ -101,6 +102,32 @@ input[type="number"] {
       0 0 0 11.5px #2E2E34,
       0 28px 75px rgba(0, 0, 0, 0.85);
     --safe-top: 28px;
+    --safe-bottom: 18px;
+  }
+}
+
+/* Lock iPhone PWA in Portrait Mode even when device rotates to Landscape */
+@media screen and (orientation: landscape) and (hover: none) and (pointer: coarse) {
+  html, body {
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: #000000;
+  }
+
+  .device-shell {
+    position: fixed !important;
+    top: 50% !important;
+    left: 50% !important;
+    width: 100dvh !important;
+    height: 100dvw !important;
+    max-width: none !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    transform: translate(-50%, -50%) rotate(var(--portrait-lock-angle, -90deg)) !important;
+    transform-origin: center center !important;
+    --safe-top: max(env(safe-area-inset-left, 24px), env(safe-area-inset-right, 24px), 24px);
     --safe-bottom: 18px;
   }
 }
