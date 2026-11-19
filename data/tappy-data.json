@@ -1,0 +1,288 @@
+{
+  "categories": [
+    {
+      "id": "cat_food",
+      "name": "Food",
+      "emoji": "🍔",
+      "color": "#E06C65",
+      "order": 0
+    },
+    {
+      "id": "cat_transport",
+      "name": "Transport",
+      "emoji": "🚕",
+      "color": "#3EC1B2",
+      "order": 1
+    },
+    {
+      "id": "cat_shopping",
+      "name": "Shopping",
+      "emoji": "🛍️",
+      "color": "#E8649A",
+      "order": 2
+    },
+    {
+      "id": "cat_entertainment",
+      "name": "Entertainment",
+      "emoji": "🎬",
+      "color": "#A472E8",
+      "order": 3
+    },
+    {
+      "id": "cat_health",
+      "name": "Health",
+      "emoji": "💊",
+      "color": "#48C774",
+      "order": 4
+    },
+    {
+      "id": "cat_personal",
+      "name": "Personal",
+      "emoji": "👤",
+      "color": "#5A9EE8",
+      "order": 5
+    },
+    {
+      "id": "cat_other",
+      "name": "Other",
+      "emoji": "✨",
+      "color": "#8FA3BF",
+      "order": 6
+    },
+    {
+      "id": "cat_emi",
+      "name": "EMI",
+      "emoji": "🧾",
+      "color": "#E8A84E",
+      "order": 7
+    }
+  ],
+  "expenses": [
+    {
+      "id": "exp_csv_0_1795107299000",
+      "amount": 250,
+      "categoryId": "cat_other",
+      "note": "Babu",
+      "isCredit": false,
+      "timestamp": 1795107299000,
+      "createdAt": 1795107299000
+    },
+    {
+      "id": "exp_csv_1_1795097518000",
+      "amount": 200,
+      "categoryId": "cat_transport",
+      "note": "Petrol",
+      "isCredit": false,
+      "timestamp": 1795097518000,
+      "createdAt": 1795097518000
+    },
+    {
+      "id": "exp_csv_2_1795066077000",
+      "amount": 100,
+      "categoryId": "cat_food",
+      "note": "Kele pyaaz",
+      "isCredit": false,
+      "timestamp": 1795066077000,
+      "createdAt": 1795066077000
+    },
+    {
+      "id": "exp_csv_3_1795065716000",
+      "amount": 160,
+      "categoryId": "cat_food",
+      "note": "Pohe",
+      "isCredit": false,
+      "timestamp": 1795065716000,
+      "createdAt": 1795065716000
+    },
+    {
+      "id": "exp_csv_4_1795027735000",
+      "amount": 2500,
+      "categoryId": "cat_shopping",
+      "note": "Blazer",
+      "isCredit": false,
+      "timestamp": 1795027735000,
+      "createdAt": 1795027735000
+    },
+    {
+      "id": "exp_csv_5_1794930774000",
+      "amount": 20,
+      "categoryId": "cat_food",
+      "note": "Bread",
+      "isCredit": false,
+      "timestamp": 1794930774000,
+      "createdAt": 1794930774000
+    },
+    {
+      "id": "exp_csv_6_1794930713000",
+      "amount": 20,
+      "categoryId": "cat_food",
+      "note": "Mufali",
+      "isCredit": false,
+      "timestamp": 1794930713000,
+      "createdAt": 1794930713000
+    },
+    {
+      "id": "exp_csv_7_1794930712000",
+      "amount": 155,
+      "categoryId": "cat_food",
+      "note": "Eggs",
+      "isCredit": false,
+      "timestamp": 1794930712000,
+      "createdAt": 1794930712000
+    },
+    {
+      "id": "exp_csv_8_1794837411000",
+      "amount": 50,
+      "categoryId": "cat_food",
+      "note": "Monish ko kele ke",
+      "isCredit": false,
+      "timestamp": 1794837411000,
+      "createdAt": 1794837411000
+    },
+    {
+      "id": "exp_csv_9_1794816170000",
+      "amount": 20,
+      "categoryId": "cat_transport",
+      "note": "parking",
+      "isCredit": false,
+      "timestamp": 1794816170000,
+      "createdAt": 1794816170000
+    },
+    {
+      "id": "exp_csv_10_1794752209000",
+      "amount": 600,
+      "categoryId": "cat_health",
+      "note": "Loki ear medicine",
+      "isCredit": false,
+      "timestamp": 1794752209000,
+      "createdAt": 1794752209000
+    },
+    {
+      "id": "exp_csv_11_1794590088000",
+      "amount": 50,
+      "categoryId": "cat_other",
+      "note": "Monish govind dev ji ",
+      "isCredit": false,
+      "timestamp": 1794590088000,
+      "createdAt": 1794590088000
+    },
+    {
+      "id": "exp_csv_12_1794578267000",
+      "amount": 60,
+      "categoryId": "cat_food",
+      "note": "Kele",
+      "isCredit": false,
+      "timestamp": 1794578267000,
+      "createdAt": 1794578267000
+    },
+    {
+      "id": "exp_csv_13_1794483346000",
+      "amount": 200,
+      "categoryId": "cat_transport",
+      "note": "Petrol",
+      "isCredit": false,
+      "timestamp": 1794483346000,
+      "createdAt": 1794483346000
+    },
+    {
+      "id": "exp_csv_14_1794137745000",
+      "amount": 100,
+      "categoryId": "cat_other",
+      "note": "Monish - krish 100 rupee",
+      "isCredit": false,
+      "timestamp": 1794137745000,
+      "createdAt": 1794137745000
+    },
+    {
+      "id": "exp_csv_15_1794137684000",
+      "amount": 150,
+      "categoryId": "cat_food",
+      "note": "Geeta kirana pooja saman",
+      "isCredit": false,
+      "timestamp": 1794137684000,
+      "createdAt": 1794137684000
+    },
+    {
+      "id": "exp_csv_16_1794137623000",
+      "amount": 500,
+      "categoryId": "cat_food",
+      "note": "Shiv shakti mithai",
+      "isCredit": false,
+      "timestamp": 1794137623000,
+      "createdAt": 1794137623000
+    },
+    {
+      "id": "exp_csv_17_1794137622000",
+      "amount": 200,
+      "categoryId": "cat_food",
+      "note": "Cold coffee late night",
+      "isCredit": false,
+      "timestamp": 1794137622000,
+      "createdAt": 1794137622000
+    },
+    {
+      "id": "exp_csv_18_1794051221000",
+      "amount": 47,
+      "categoryId": "cat_food",
+      "note": "Nitya bhaiya",
+      "isCredit": false,
+      "timestamp": 1794051221000,
+      "createdAt": 1794051221000
+    },
+    {
+      "id": "exp_csv_19_1793791960000",
+      "amount": 380,
+      "categoryId": "cat_food",
+      "note": "Cake anniversary",
+      "isCredit": false,
+      "timestamp": 1793791960000,
+      "createdAt": 1793791960000
+    },
+    {
+      "id": "exp_csv_20_1793791899000",
+      "amount": 395,
+      "categoryId": "cat_other",
+      "note": "Unknown cash",
+      "isCredit": false,
+      "timestamp": 1793791899000,
+      "createdAt": 1793791899000
+    },
+    {
+      "id": "exp_csv_21_1793705438000",
+      "amount": 30,
+      "categoryId": "cat_food",
+      "note": "Kele",
+      "isCredit": false,
+      "timestamp": 1793705438000,
+      "createdAt": 1793705438000
+    },
+    {
+      "id": "exp_csv_22_1793618797000",
+      "amount": 200,
+      "categoryId": "cat_transport",
+      "note": "Petrol",
+      "isCredit": false,
+      "timestamp": 1793618797000,
+      "createdAt": 1793618797000
+    },
+    {
+      "id": "exp_csv_23_1793532636000",
+      "amount": 340,
+      "categoryId": "cat_other",
+      "note": "Press ke kapde",
+      "isCredit": false,
+      "timestamp": 1793532636000,
+      "createdAt": 1793532636000
+    }
+  ],
+  "settings": {
+    "currency": "₹",
+    "currencyCode": "INR",
+    "currencyName": "Indian Rupee",
+    "language": "Automatic (English)",
+    "monthlyBudget": 0,
+    "cycleStartDay": 1,
+    "haptics": true
+  },
+  "updatedAt": 1795114368668
+}
