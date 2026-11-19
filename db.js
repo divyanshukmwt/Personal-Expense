@@ -3,9 +3,9 @@
  * Dual-persisted in IndexedDB + LocalStorage Mirror
  */
 
-const DB_NAME = 'TappyExactIOSDB_v3';
-const DB_VERSION = 3;
-const LS_KEY = 'tappy_exact_ios_state_v3';
+const DB_NAME = 'TappyExactIOSDB_v4';
+const DB_VERSION = 4;
+const LS_KEY = 'tappy_exact_ios_state_v4';
 
 const IOS_COLORS = [
   { name: 'Food Coral', hex: '#E06C65' },
@@ -51,12 +51,13 @@ const DEFAULT_SETTINGS = {
   haptics: true
 };
 
-// Exact 23 records from tappy-expenses-2026-11-01-to-2026-11-19.csv
+// Exact 24 records from tappy-expenses-2026-11-01-to-2026-11-20.csv
 const INITIAL_CSV_EXPENSES = [
   { date: '2026-11-19', time: '22:24', category: 'Other', amount: 250.00, currency: 'INR', note: 'Babu' },
   { date: '2026-11-19', time: '19:41', category: 'Transport', amount: 200.00, currency: 'INR', note: 'Petrol' },
   { date: '2026-11-19', time: '10:57', category: 'Food', amount: 100.00, currency: 'INR', note: 'Kele pyaaz' },
   { date: '2026-11-19', time: '10:51', category: 'Food', amount: 160.00, currency: 'INR', note: 'Pohe' },
+  { date: '2026-11-19', time: '00:18', category: 'Shopping', amount: 2500.00, currency: 'INR', note: 'Blazer' },
   { date: '2026-11-17', time: '21:22', category: 'Food', amount: 20.00, currency: 'INR', note: 'Bread' },
   { date: '2026-11-17', time: '21:21', category: 'Food', amount: 20.00, currency: 'INR', note: 'Mufali' },
   { date: '2026-11-17', time: '21:21', category: 'Food', amount: 155.00, currency: 'INR', note: 'Eggs' },
@@ -89,6 +90,13 @@ class TappyStorage {
   }
 
   async init() {
+    // Clean up older cache versions so fresh dataset loads cleanly
+    try {
+      ['tappy_ios_state_v1', 'tappy_exact_ios_state_v2', 'tappy_exact_ios_state_v3'].forEach((k) => {
+        localStorage.removeItem(k);
+      });
+    } catch (_) {}
+
     const rawMirror = localStorage.getItem(LS_KEY);
     let mirrorLoaded = false;
 

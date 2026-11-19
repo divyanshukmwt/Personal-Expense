@@ -28,6 +28,7 @@ const INITIAL_CSV_EXPENSES = [
   { date: '2026-11-19', time: '19:41', category: 'Transport', amount: 200.00, note: 'Petrol' },
   { date: '2026-11-19', time: '10:57', category: 'Food', amount: 100.00, note: 'Kele pyaaz' },
   { date: '2026-11-19', time: '10:51', category: 'Food', amount: 160.00, note: 'Pohe' },
+  { date: '2026-11-19', time: '00:18', category: 'Shopping', amount: 2500.00, note: 'Blazer' },
   { date: '2026-11-17', time: '21:22', category: 'Food', amount: 20.00, note: 'Bread' },
   { date: '2026-11-17', time: '21:21', category: 'Food', amount: 20.00, note: 'Mufali' },
   { date: '2026-11-17', time: '21:21', category: 'Food', amount: 155.00, note: 'Eggs' },

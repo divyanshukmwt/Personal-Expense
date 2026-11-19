@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tappy-ios-pwa-v6';
+const CACHE_NAME = 'tappy-ios-pwa-v7';
 const ASSETS = [
   './',
   './index.html',
