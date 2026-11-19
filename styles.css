@@ -315,6 +315,12 @@ input[type="number"] {
   font-weight: 500;
   color: #78787E;
   margin-bottom: 8px;
+  transition: color 0.16s ease;
+}
+
+.how-much-label.credit-active {
+  color: var(--tappy-green);
+  font-weight: 600;
 }
 
 .tap-amount-row {
@@ -323,7 +329,19 @@ input[type="number"] {
   justify-content: center;
   gap: 10px;
   min-height: 68px;
-  transition: transform 0.12s ease;
+  transition: transform 0.12s ease, color 0.16s ease;
+}
+
+.tap-credit-plus {
+  font-size: 46px;
+  font-weight: 700;
+  color: var(--tappy-green);
+  font-family: var(--font-rounded);
+}
+
+.tap-amount-row.credit-active .tap-currency,
+.tap-amount-row.credit-active .tap-digits {
+  color: var(--tappy-green);
 }
 
 .tap-amount-row.shake {
@@ -481,9 +499,9 @@ input[type="number"] {
 }
 
 .tap-credit-pill.active {
-  background: rgba(78, 205, 196, 0.18);
-  color: var(--tappy-teal);
-  border: 1px solid rgba(78, 205, 196, 0.45);
+  background: rgba(72, 199, 116, 0.18);
+  color: var(--tappy-green);
+  border: 1.5px solid rgba(72, 199, 116, 0.55);
 }
 
 /* 3x4 Keypad + Save Button */
@@ -536,6 +554,11 @@ input[type="number"] {
 
 .tap-save-btn.ready {
   background: #FFFFFF;
+  color: #000000;
+}
+
+.tap-save-btn.ready.credit-active {
+  background: var(--tappy-green);
   color: #000000;
 }
 
@@ -717,6 +740,20 @@ input[type="number"] {
   font-size: 16px;
   font-weight: 700;
   color: var(--text-white);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.credit-badge-pill {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: var(--tappy-green);
+  background: rgba(72, 199, 116, 0.16);
+  border: 0.5px solid rgba(72, 199, 116, 0.42);
+  padding: 2px 7px;
+  border-radius: 999px;
 }
 
 .expense-note-sub {
@@ -741,6 +778,12 @@ input[type="number"] {
   color: var(--text-white);
 }
 
+.expense-amount-val.credit-amount,
+.day-header-total.credit-positive,
+.total-bar-amount.credit-positive {
+  color: var(--tappy-green);
+}
+
 .expense-time-sub {
   font-size: 12.5px;
   color: #636368;
@@ -752,7 +795,7 @@ input[type="number"] {
   bottom: calc(62px + var(--safe-bottom));
   left: 0;
   right: 0;
-  height: 54px;
+  height: 56px;
   background: var(--surface-total-bar);
   border-top: 0.5px solid #1E1E22;
   padding: 0 20px;
@@ -762,15 +805,63 @@ input[type="number"] {
   z-index: 30;
 }
 
+.total-bar-left {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
 .total-bar-label {
-  font-size: 16px;
+  font-size: 15.5px;
   color: #78787E;
+}
+
+.total-bar-credit-sub {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tappy-green);
 }
 
 .total-bar-amount {
   font-size: 20px;
   font-weight: 700;
   color: var(--text-white);
+}
+
+.kpi-credit-note {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--tappy-green);
+  margin-top: -2px;
+}
+
+.edit-type-toggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.edit-type-btn {
+  height: 40px;
+  border-radius: 12px;
+  background: #222226;
+  color: #8E8E93;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: all 0.15s ease;
+}
+
+.edit-type-btn.active {
+  background: #FFFFFF;
+  color: #000000;
+}
+
+.edit-type-btn.credit-mode.active {
+  background: rgba(72, 199, 116, 0.2);
+  color: var(--tappy-green);
+  border-color: var(--tappy-green);
 }
 
 /* ==========================================================================

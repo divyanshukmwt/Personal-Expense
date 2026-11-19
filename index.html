@@ -126,8 +126,11 @@
 
         <!-- Sticky Bottom Total Bar above Tab Bar -->
         <div class="expenses-total-bar">
-          <span class="total-bar-label">Total</span>
-          <span class="total-bar-amount" id="history-total-amount">₹710</span>
+          <div class="total-bar-left">
+            <span class="total-bar-label">Total</span>
+            <span class="total-bar-credit-sub hidden" id="history-credit-sub"></span>
+          </div>
+          <span class="total-bar-amount" id="history-total-amount">₹0</span>
         </div>
       </section>
 
@@ -137,8 +140,9 @@
       <section class="tab-view active" id="view-tap" aria-label="Tap Expense Entry">
         <!-- Amount Section -->
         <div class="tap-amount-section">
-          <div class="how-much-label">How much?</div>
+          <div class="how-much-label" id="how-much-label">How much?</div>
           <div class="tap-amount-row" id="tap-amount-row">
+            <span class="tap-credit-plus hidden" id="tap-credit-plus">+</span>
             <span class="tap-currency" id="tap-currency">₹</span>
             <span class="tap-digits" id="tap-digits">0</span>
           </div>
@@ -232,7 +236,8 @@
           <div class="spending-kpi-row">
             <div class="spending-kpi-card">
               <div class="kpi-card-label" id="spending-kpi-label">Spent this month</div>
-              <div class="kpi-card-value" id="spending-kpi-total">₹4,227</div>
+              <div class="kpi-card-value" id="spending-kpi-total">₹0</div>
+              <div class="kpi-credit-note hidden" id="spending-credit-note"></div>
             </div>
             <button type="button" class="spending-kpi-card kpi-card-interactive" id="budget-left-card" title="Tap to set monthly budget">
               <div class="kpi-card-label">Budget left</div>
@@ -552,6 +557,14 @@
         </div>
 
         <div class="sheet-content">
+          <div class="sheet-field">
+            <label class="sheet-label">TRANSACTION TYPE</label>
+            <div class="edit-type-toggle">
+              <button type="button" class="edit-type-btn active" id="edit-type-expense">Expense</button>
+              <button type="button" class="edit-type-btn credit-mode" id="edit-type-credit">+ Credit (Added)</button>
+            </div>
+          </div>
+
           <div class="sheet-field">
             <label class="sheet-label" for="edit-exp-amount">AMOUNT</label>
             <input type="number" id="edit-exp-amount" class="sheet-text-input large-num" step="0.01" min="0.01" />

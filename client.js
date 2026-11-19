@@ -27,6 +27,7 @@
     editingCatEmoji: '🍔',
     editingExpenseId: null,
     editingExpenseCatId: null,
+    editingExpenseIsCredit: false,
 
     // Back-Tap 3-Step Shortcut Flow state
     backtapAmount: 0,
@@ -227,6 +228,10 @@
     const curEl = document.getElementById('tap-currency');
     const digitsEl = document.getElementById('tap-digits');
     const saveBtn = document.getElementById('tap-save-btn');
+    const labelEl = document.getElementById('how-much-label');
+    const rowEl = document.getElementById('tap-amount-row');
+    const plusEl = document.getElementById('tap-credit-plus');
+    const creditBtn = document.getElementById('tap-credit-btn');
 
     curEl.textContent = storage.state.settings.currency || '₹';
 
@@ -239,8 +244,22 @@
     digitsEl.textContent = displayStr;
     digitsEl.classList.toggle('long', displayStr.length > 8);
 
+    // Update Credit visual theme on Tap Screen
+    if (labelEl) {
+      labelEl.textContent = ui.isCredit ? 'How much credited? (Added)' : 'How much?';
+      labelEl.classList.toggle('credit-active', ui.isCredit);
+    }
+    if (rowEl) rowEl.classList.toggle('credit-active', ui.isCredit);
+    if (plusEl) plusEl.classList.toggle('hidden', !ui.isCredit);
+    if (creditBtn) {
+      creditBtn.classList.toggle('active', ui.isCredit);
+      creditBtn.textContent = ui.isCredit ? '+ Credit ✓' : 'Credit';
+    }
+
     const numVal = parseFloat(ui.keypadInput) || 0;
     saveBtn.classList.toggle('ready', numVal > 0);
+    saveBtn.classList.toggle('credit-active', ui.isCredit);
+    saveBtn.textContent = ui.isCredit ? 'Save Credit (+)' : 'Save';
   }
 
   function renderTapCategories() {
@@ -382,7 +401,11 @@
     noteInput.value = '';
     renderTapView();
 
-    showToast(`${cat.emoji} ${formatCurrency(saved.amount)} saved in ${cat.name}`, async () => {
+    const toastMsg = saved.isCredit
+      ? `💚 +${formatCurrency(saved.amount)} credited in ${cat.name}`
+      : `${cat.emoji} ${formatCurrency(saved.amount)} saved in ${cat.name}`;
+
+    showToast(toastMsg, async () => {
       await storage.deleteExpense(saved.id);
       renderHistoryView();
       renderSpendingView();
@@ -547,8 +570,39 @@
     });
 
     const filtered = getHistoryFilteredExpenses();
-    const grandTotal = filtered.reduce((sum, e) => sum + e.amount, 0);
-    document.getElementById('history-total-amount').textContent = formatCurrency(grandTotal);
+
+    // Calculate Gross Expenses, Credits Added, and Net Expense (Spent minus Credited)
+    let grossExpenses = 0;
+    let totalCredits = 0;
+    filtered.forEach((e) => {
+      if (e.isCredit) {
+        totalCredits += e.amount;
+      } else {
+        grossExpenses += e.amount;
+      }
+    });
+    const netTotal = grossExpenses - totalCredits;
+
+    const totalEl = document.getElementById('history-total-amount');
+    const creditSubEl = document.getElementById('history-credit-sub');
+
+    if (netTotal < 0) {
+      totalEl.textContent = `+${formatCurrency(Math.abs(netTotal))}`;
+      totalEl.classList.add('credit-positive');
+    } else {
+      totalEl.textContent = formatCurrency(netTotal);
+      totalEl.classList.remove('credit-positive');
+    }
+
+    if (creditSubEl) {
+      if (totalCredits > 0) {
+        creditSubEl.textContent = `Spent ${formatCurrency(grossExpenses)} • Credited +${formatCurrency(totalCredits)}`;
+        creditSubEl.classList.remove('hidden');
+      } else {
+        creditSubEl.textContent = '';
+        creditSubEl.classList.add('hidden');
+      }
+    }
 
     const container = document.getElementById('history-groups-container');
     container.innerHTML = '';
@@ -577,7 +631,8 @@
       }
       const g = map.get(key);
       g.items.push(exp);
-      g.subtotal += exp.amount;
+      // Credit deducts from the day's expense subtotal
+      g.subtotal += exp.isCredit ? -exp.amount : exp.amount;
     });
 
     groups.forEach((g) => {
@@ -586,9 +641,14 @@
 
       const headerEl = document.createElement('div');
       headerEl.className = 'expense-day-header';
+      const isDayCreditNet = g.subtotal < 0;
+      const daySubtotalStr = isDayCreditNet
+        ? `+${formatCurrency(Math.abs(g.subtotal))}`
+        : formatCurrency(g.subtotal);
+
       headerEl.innerHTML = `
         <span class="day-header-title">${g.label}</span>
-        <span class="day-header-total">${formatCurrency(g.subtotal)}</span>
+        <span class="day-header-total${isDayCreditNet ? ' credit-positive' : ''}">${daySubtotalStr}</span>
       `;
       groupEl.appendChild(headerEl);
 
@@ -613,22 +673,26 @@
 
         const row = document.createElement('div');
         row.className = 'expense-item-row';
-        const noteDisplay = exp.note
-          ? `${exp.note}${exp.isCredit ? ' • Credit' : ''}`
-          : (exp.isCredit ? 'Credit' : '');
+        const noteDisplay = exp.note || '';
+        const amountStr = exp.isCredit
+          ? `+${formatCurrency(exp.amount)}`
+          : formatCurrency(exp.amount);
 
         row.innerHTML = `
           <div class="expense-item-left">
-            <div class="expense-avatar-circle" style="background: ${hexToRgba(cat.color, 0.16)}">
+            <div class="expense-avatar-circle" style="background: ${exp.isCredit ? 'rgba(72, 199, 116, 0.16)' : hexToRgba(cat.color, 0.16)}">
               ${cat.emoji}
             </div>
             <div class="expense-text-col">
-              <div class="expense-cat-title">${cat.name}</div>
+              <div class="expense-cat-title">
+                <span>${cat.name}</span>
+                ${exp.isCredit ? '<span class="credit-badge-pill">+ CREDIT</span>' : ''}
+              </div>
               ${noteDisplay ? `<div class="expense-note-sub">${noteDisplay}</div>` : ''}
             </div>
           </div>
           <div class="expense-item-right">
-            <div class="expense-amount-val">${formatCurrency(exp.amount)}</div>
+            <div class="expense-amount-val${exp.isCredit ? ' credit-amount' : ''}">${amountStr}</div>
             <div class="expense-time-sub">${formatTime12h(exp.timestamp)}</div>
           </div>
         `;
@@ -695,9 +759,12 @@
         const dt = new Date(y, m, d - i);
         const s = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate(), 0, 0, 0).getTime();
         const e = new Date(dt.getFullYear(), dt.getMonth(), dt.getDate() + 1, 0, 0, 0).getTime();
-        const val = periodExpenses
-          .filter((exp) => exp.timestamp >= s && exp.timestamp < e)
-          .reduce((sum, exp) => sum + exp.amount, 0);
+        const val = Math.max(
+          0,
+          periodExpenses
+            .filter((exp) => exp.timestamp >= s && exp.timestamp < e)
+            .reduce((sum, exp) => sum + (exp.isCredit ? -exp.amount : exp.amount), 0)
+        );
 
         buckets.push({
           label: dt.toLocaleDateString('en-US', { weekday: 'short' }),
@@ -715,9 +782,12 @@
       for (let day = 1; day <= daysInMonth; day++) {
         const s = new Date(y, m, day, 0, 0, 0).getTime();
         const e = new Date(y, m, day + 1, 0, 0, 0).getTime();
-        const val = periodExpenses
-          .filter((exp) => exp.timestamp >= s && exp.timestamp < e)
-          .reduce((sum, exp) => sum + exp.amount, 0);
+        const val = Math.max(
+          0,
+          periodExpenses
+            .filter((exp) => exp.timestamp >= s && exp.timestamp < e)
+            .reduce((sum, exp) => sum + (exp.isCredit ? -exp.amount : exp.amount), 0)
+        );
 
         const showTick = day === 1 || day % 5 === 0 || day === daysInMonth;
         buckets.push({
@@ -736,9 +806,12 @@
       monthNames.forEach((mName, mIdx) => {
         const s = new Date(y, mIdx, 1, 0, 0, 0).getTime();
         const e = new Date(y, mIdx + 1, 1, 0, 0, 0).getTime();
-        const val = periodExpenses
-          .filter((exp) => exp.timestamp >= s && exp.timestamp < e)
-          .reduce((sum, exp) => sum + exp.amount, 0);
+        const val = Math.max(
+          0,
+          periodExpenses
+            .filter((exp) => exp.timestamp >= s && exp.timestamp < e)
+            .reduce((sum, exp) => sum + (exp.isCredit ? -exp.amount : exp.amount), 0)
+        );
 
         buckets.push({
           label: mName.slice(0, 1),
@@ -832,10 +905,39 @@
     }
 
     const periodExpenses = storage.state.expenses.filter((e) => e.timestamp >= startTs);
-    const totalSpent = periodExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+    let grossSpent = 0;
+    let totalCredited = 0;
+    periodExpenses.forEach((e) => {
+      if (e.isCredit) {
+        totalCredited += e.amount;
+      } else {
+        grossSpent += e.amount;
+      }
+    });
+    const netSpent = grossSpent - totalCredited;
+    const totalSpent = Math.max(0, netSpent);
 
     document.getElementById('spending-kpi-label').textContent = labelText;
-    document.getElementById('spending-kpi-total').textContent = formatCurrency(totalSpent);
+    const kpiTotalEl = document.getElementById('spending-kpi-total');
+    if (netSpent < 0) {
+      kpiTotalEl.textContent = `+${formatCurrency(Math.abs(netSpent))}`;
+      kpiTotalEl.style.color = 'var(--tappy-green)';
+    } else {
+      kpiTotalEl.textContent = formatCurrency(totalSpent);
+      kpiTotalEl.style.color = '';
+    }
+
+    const creditNoteEl = document.getElementById('spending-credit-note');
+    if (creditNoteEl) {
+      if (totalCredited > 0) {
+        creditNoteEl.textContent = `+${formatCurrency(totalCredited)} credited deducted`;
+        creditNoteEl.classList.remove('hidden');
+      } else {
+        creditNoteEl.textContent = '';
+        creditNoteEl.classList.add('hidden');
+      }
+    }
 
     // Budget left KPI Card
     const budgetLimit = Number(storage.state.settings.monthlyBudget) || 0;
@@ -848,7 +950,7 @@
         : period === 'year'
         ? budgetLimit * 12
         : budgetLimit;
-      const left = scaledLimit - totalSpent;
+      const left = scaledLimit - netSpent;
       budgetLeftEl.textContent = left >= 0 ? formatCurrency(left) : `-${formatCurrency(Math.abs(left))}`;
     }
 
@@ -868,26 +970,34 @@
     const stackedBarEl = document.getElementById('spending-stacked-bar');
     if (stackedBarEl) stackedBarEl.innerHTML = '';
 
-    if (periodExpenses.length === 0 || totalSpent <= 0) {
+    if (periodExpenses.length === 0) {
       catListEl.innerHTML = `<div class="empty-placeholder" style="padding: 24px 0;">No expenses in this period yet.</div>`;
       return;
     }
 
     const catMap = new Map();
     periodExpenses.forEach((e) => {
-      const prev = catMap.get(e.categoryId) || { amount: 0, items: [] };
-      prev.amount += e.amount;
+      const prev = catMap.get(e.categoryId) || { amount: 0, credited: 0, items: [] };
+      if (e.isCredit) {
+        prev.amount -= e.amount;
+        prev.credited += e.amount;
+      } else {
+        prev.amount += e.amount;
+      }
       prev.items.push(e);
       catMap.set(e.categoryId, prev);
     });
+
+    const positiveSum = Array.from(catMap.values()).reduce((s, d) => s + Math.max(0, d.amount), 0) || 1;
 
     const ranked = Array.from(catMap.entries())
       .map(([catId, data]) => ({
         category: getCategoryById(catId),
         amount: data.amount,
+        credited: data.credited,
         items: data.items,
-        pct: Math.round((data.amount / totalSpent) * 100),
-        exactPct: (data.amount / totalSpent) * 100
+        pct: data.amount > 0 ? Math.round((data.amount / positiveSum) * 100) : 0,
+        exactPct: data.amount > 0 ? (data.amount / positiveSum) * 100 : 0
       }))
       .sort((a, b) => b.amount - a.amount);
 
@@ -906,22 +1016,28 @@
     ranked.forEach((row) => {
       const itemEl = document.createElement('div');
       itemEl.className = 'by-cat-item';
+      const isCreditNet = row.amount < 0;
+      const amtStr = isCreditNet
+        ? `+${formatCurrency(Math.abs(row.amount), 2)}`
+        : formatCurrency(row.amount, 2);
+
       itemEl.innerHTML = `
-        <div class="by-cat-accent-bar" style="background: ${row.category.color}"></div>
+        <div class="by-cat-accent-bar" style="background: ${isCreditNet ? 'var(--tappy-green)' : row.category.color}"></div>
         <div class="by-cat-main">
           <div class="by-cat-top-line">
             <div class="by-cat-name-wrap">
               <span>${row.category.emoji}</span>
               <span>${row.category.name}</span>
+              ${row.credited > 0 ? `<span class="credit-badge-pill">+${formatCurrency(row.credited)}</span>` : ''}
             </div>
             <div class="by-cat-amount-wrap">
-              <span>${formatCurrency(row.amount, 2)}</span>
+              <span style="${isCreditNet ? 'color: var(--tappy-green);' : ''}">${amtStr}</span>
               <span class="by-cat-chevron">›</span>
             </div>
           </div>
           <div class="by-cat-bottom-line">
             <div class="by-cat-progress-track">
-              <div class="by-cat-progress-fill" style="width: ${Math.max(4, row.pct)}%; background: ${row.category.color}"></div>
+              <div class="by-cat-progress-fill" style="width: ${Math.max(4, row.pct)}%; background: ${isCreditNet ? 'var(--tappy-green)' : row.category.color}"></div>
             </div>
             <span class="by-cat-pct">${row.pct}%</span>
           </div>
@@ -1103,6 +1219,19 @@
     document.getElementById('category-sheet-backdrop').classList.remove('hidden');
   }
 
+  function updateEditTypeToggle() {
+    const expBtn = document.getElementById('edit-type-expense');
+    const credBtn = document.getElementById('edit-type-credit');
+    const titleEl = document.getElementById('exp-sheet-title');
+    if (!expBtn || !credBtn) return;
+
+    expBtn.classList.toggle('active', !ui.editingExpenseIsCredit);
+    credBtn.classList.toggle('active', ui.editingExpenseIsCredit);
+    if (titleEl) {
+      titleEl.textContent = ui.editingExpenseIsCredit ? 'Edit Credit (+)' : 'Edit Expense';
+    }
+  }
+
   function openEditExpenseModal(expenseId) {
     const exp = storage.state.expenses.find((e) => e.id === expenseId);
     if (!exp) return;
@@ -1110,6 +1239,8 @@
 
     ui.editingExpenseId = exp.id;
     ui.editingExpenseCatId = exp.categoryId;
+    ui.editingExpenseIsCredit = Boolean(exp.isCredit);
+    updateEditTypeToggle();
 
     document.getElementById('edit-exp-amount').value = exp.amount;
     document.getElementById('edit-exp-note').value = exp.note || '';
@@ -1288,24 +1419,31 @@
         (exp) => `
         <div class="expense-item-row drilldown-exp-row" data-id="${exp.id}">
           <div class="expense-item-left">
-            <div class="expense-avatar-circle" style="background: ${hexToRgba(category.color, 0.2)}">
+            <div class="expense-avatar-circle" style="background: ${exp.isCredit ? 'rgba(72, 199, 116, 0.2)' : hexToRgba(category.color, 0.2)}">
               ${category.emoji}
             </div>
             <div class="expense-text-col">
-              <div class="expense-cat-title">${exp.note || category.name}</div>
+              <div class="expense-cat-title">
+                <span>${exp.note || category.name}</span>
+                ${exp.isCredit ? '<span class="credit-badge-pill">+ CREDIT</span>' : ''}
+              </div>
               <div class="expense-note-sub">${formatDayGroupLabel(exp.timestamp)} • ${formatTime12h(exp.timestamp)}</div>
             </div>
           </div>
           <div class="expense-item-right">
-            <div class="expense-amount-val">${formatCurrency(exp.amount)}</div>
+            <div class="expense-amount-val${exp.isCredit ? ' credit-amount' : ''}">${exp.isCredit ? '+' : ''}${formatCurrency(exp.amount)}</div>
           </div>
         </div>
       `
       )
       .join('');
 
+    const titleAmtStr = totalAmount < 0
+      ? `+${formatCurrency(Math.abs(totalAmount))}`
+      : formatCurrency(totalAmount);
+
     openGenericSheet({
-      title: `${category.emoji} ${category.name} (${formatCurrency(totalAmount)})`,
+      title: `${category.emoji} ${category.name} (${titleAmtStr})`,
       bodyHTML: `<div class="drilldown-list-card">${rowsHTML}</div>`
     });
 
@@ -1434,7 +1572,11 @@
     renderHistoryView();
     renderSpendingView();
 
-    showToast(`${cat.emoji} ${formatCurrency(saved.amount)} saved in ${cat.name}`, async () => {
+    const toastMsg = saved.isCredit
+      ? `💚 +${formatCurrency(saved.amount)} credited in ${cat.name}`
+      : `${cat.emoji} ${formatCurrency(saved.amount)} saved in ${cat.name}`;
+
+    showToast(toastMsg, async () => {
       await storage.deleteExpense(saved.id);
       renderHistoryView();
       renderSpendingView();
@@ -1729,7 +1871,7 @@
     document.getElementById('tap-credit-btn').addEventListener('click', () => {
       triggerClick('tap');
       ui.isCredit = !ui.isCredit;
-      document.getElementById('tap-credit-btn').classList.toggle('active', ui.isCredit);
+      renderTapAmount();
     });
 
     // TAP SCREEN: Keypad Keys & Save
@@ -1885,6 +2027,16 @@
     });
 
     // EDIT EXPENSE MODAL SHEET
+    document.getElementById('edit-type-expense').addEventListener('click', () => {
+      triggerClick('tap');
+      ui.editingExpenseIsCredit = false;
+      updateEditTypeToggle();
+    });
+    document.getElementById('edit-type-credit').addEventListener('click', () => {
+      triggerClick('tap');
+      ui.editingExpenseIsCredit = true;
+      updateEditTypeToggle();
+    });
     document.getElementById('exp-sheet-cancel').addEventListener('click', () => {
       document.getElementById('expense-sheet-backdrop').classList.add('hidden');
     });
@@ -1900,13 +2052,14 @@
         amount,
         categoryId: ui.editingExpenseCatId,
         note,
+        isCredit: ui.editingExpenseIsCredit,
         timestamp
       });
       triggerClick('save');
       document.getElementById('expense-sheet-backdrop').classList.add('hidden');
       renderHistoryView();
       renderSpendingView();
-      showToast('Expense updated');
+      showToast(ui.editingExpenseIsCredit ? '💚 Credit updated' : 'Expense updated');
     });
 
     document.getElementById('exp-sheet-delete').addEventListener('click', () => {
