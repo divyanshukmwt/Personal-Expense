@@ -2,8 +2,9 @@
   "name": "tappy-ios-expense-tracker-pwa",
   "version": "1.0.0",
   "description": "iOS 17/18 Daily Expense Tracker PWA inspired by Tappy, optimized for iPhone 14 Pro Max.",
+  "main": "server.js",
   "scripts": {
-    "start": "node dev-server.js",
-    "dev": "node dev-server.js"
+    "start": "node server.js",
+    "dev": "node server.js"
   }
 }

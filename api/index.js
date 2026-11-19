@@ -181,10 +181,13 @@ async function apiHandler(req, res) {
     return res.end();
   }
 
-  const proto = req.headers['x-forwarded-proto'] || 'http';
-  const host = req.headers.host || 'localhost:3000';
-  const parsedUrl = new URL(req.url, `${proto}://${host}`);
-  const pathname = decodeURIComponent(parsedUrl.pathname);
+  const rawProto = req.headers['x-forwarded-proto'] || 'http';
+  const proto = String(rawProto).split(',')[0].trim() || 'http';
+  const host = String(req.headers.host || 'localhost:3000').split(',')[0].trim();
+  const rawUrl = req.url || '/';
+  const qIdx = rawUrl.indexOf('?');
+  const pathname = decodeURIComponent(qIdx >= 0 ? rawUrl.slice(0, qIdx) : rawUrl);
+  const searchParams = new URLSearchParams(qIdx >= 0 ? rawUrl.slice(qIdx + 1) : '');
 
   // 1. GET /api/state
   if (pathname === '/api/state' && req.method === 'GET') {
@@ -273,9 +276,9 @@ Script.complete();`;
   // 5. GET or POST /api/log (also supports /api/log/:amount/:cat/:note)
   if (pathname === '/api/log' || pathname.startsWith('/api/log/')) {
     const state = loadServerState();
-    let amountRaw = parsedUrl.searchParams.get('amount') || parsedUrl.searchParams.get('add');
-    let catRaw = parsedUrl.searchParams.get('cat') || parsedUrl.searchParams.get('category');
-    let noteRaw = parsedUrl.searchParams.get('note') || '';
+    let amountRaw = searchParams.get('amount') || searchParams.get('add');
+    let catRaw = searchParams.get('cat') || searchParams.get('category');
+    let noteRaw = searchParams.get('note') || '';
 
     if (pathname.startsWith('/api/log/')) {
       const parts = pathname.replace('/api/log/', '').split('/');
