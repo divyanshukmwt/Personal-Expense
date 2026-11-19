@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Tappy — Daily Expense Tracker</title>
+
+  <!-- iOS Standalone PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Tappy" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="format-detection" content="telephone=no" />
+
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="apple-touch-icon" sizes="180x180" href="./icons/icon-180.png" />
+  <link rel="icon" type="image/svg+xml" href="./icons/icon.svg" />
+  <link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png" />
+
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="device-shell" id="device-shell">
+    <!-- Subtle Top Notification Toast (for Undo / Saved feedback) -->
+    <div class="tappy-toast" id="tappy-toast" role="status" aria-live="polite">
+      <span class="tappy-toast-text" id="tappy-toast-text">Saved</span>
+      <button type="button" class="tappy-toast-undo hidden" id="tappy-toast-undo">Undo</button>
+    </div>
+
+    <!-- =========================================================
+         iOS BACK TAP / SHORTCUT 3-STEP GLASS OVERLAY
+         (Matches exact iOS Back Tap -> Amount -> Category -> Note)
+         ========================================================= -->
+    <div class="ios-backtap-overlay hidden" id="ios-backtap-overlay" role="dialog" aria-modal="true">
+      <!-- Dynamic Island "Back Tap • Double Tap Detected" Capsule -->
+      <div class="backtap-dynamic-island" id="backtap-dynamic-island">
+        <div class="backtap-a11y-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10" stroke="#0A84FF" stroke-width="1.8"/>
+            <circle cx="12" cy="7.2" r="1.5" fill="#0A84FF"/>
+            <path d="M7.5 10.2 L16.5 10.2 M12 10.2 L12 14.2 M12 14.2 L9.5 18.2 M12 14.2 L14.5 18.2" stroke="#0A84FF" stroke-width="1.8" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="backtap-island-text">
+          <div class="backtap-island-title">Back Tap</div>
+          <div class="backtap-island-sub">Double Tap Detected</div>
+        </div>
+      </div>
+
+      <!-- STEP 1: "How much did you spend?" -->
+      <div class="ios-shortcut-glass-card" id="backtap-step-amount">
+        <div class="shortcut-card-title">How much did you spend?</div>
+        <div class="shortcut-amount-box">
+          <input
+            type="text"
+            inputmode="decimal"
+            id="backtap-amount-input"
+            class="shortcut-amount-input"
+            placeholder="Amount"
+            autocomplete="off"
+          />
+        </div>
+        <div class="shortcut-btn-row">
+          <button type="button" class="shortcut-btn-cancel" id="backtap-amount-cancel">Cancel</button>
+          <button type="button" class="shortcut-btn-done" id="backtap-amount-done">Done</button>
+        </div>
+      </div>
+
+      <!-- STEP 2: "Choose a category" -->
+      <div class="ios-shortcut-glass-card hidden" id="backtap-step-category">
+        <div class="shortcut-card-title">Choose a category</div>
+        <div class="shortcut-category-list" id="backtap-category-list"></div>
+      </div>
+
+      <!-- STEP 3: "Add a note (optional)" -->
+      <div class="ios-shortcut-glass-card hidden" id="backtap-step-note">
+        <div class="shortcut-card-title">Add a note (optional)</div>
+        <div class="shortcut-note-box">
+          <input
+            type="text"
+            id="backtap-note-input"
+            class="shortcut-note-input"
+            placeholder="Note"
+            autocomplete="off"
+            enterkeyhint="done"
+          />
+        </div>
+        <div class="shortcut-btn-row">
+          <button type="button" class="shortcut-btn-cancel" id="backtap-note-cancel">Cancel</button>
+          <button type="button" class="shortcut-btn-done" id="backtap-note-done">Done</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-container">
+      <!-- =========================================================
+           TAB 1 (LEFT): HISTORY -> "Expenses" Screen
+           ========================================================= -->
+      <section class="tab-view" id="view-history" aria-label="Expenses History">
+        <header class="tappy-top-header">
+          <div class="header-side"></div>
+          <h1 class="header-title">Expenses</h1>
+          <div class="header-side right">
+            <button type="button" class="sliders-icon-btn open-settings-btn" aria-label="Open Settings">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <line x1="4" y1="7" x2="20" y2="7"></line>
+                <circle cx="9" cy="7" r="2.5" fill="#FFFFFF" stroke="#FFFFFF"></circle>
+                <line x1="4" y1="17" x2="20" y2="17"></line>
+                <circle cx="15" cy="17" r="2.5" fill="#FFFFFF" stroke="#FFFFFF"></circle>
+              </svg>
+            </button>
+          </div>
+        </header>
+
+        <!-- Filter Pills: Today | This Week | This Month | All -->
+        <div class="expenses-filter-pills" id="history-filter-pills">
+          <button type="button" class="tappy-filter-pill active" data-range="today">Today</button>
+          <button type="button" class="tappy-filter-pill" data-range="week">This Week</button>
+          <button type="button" class="tappy-filter-pill" data-range="month">This Month</button>
+          <button type="button" class="tappy-filter-pill" data-range="all">All</button>
+        </div>
+
+        <!-- Scrollable Chronological Expense Groups -->
+        <div class="expenses-list-scroll" id="history-groups-container"></div>
+
+        <!-- Sticky Bottom Total Bar above Tab Bar -->
+        <div class="expenses-total-bar">
+          <span class="total-bar-label">Total</span>
+          <span class="total-bar-amount" id="history-total-amount">₹710</span>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           TAB 2 (CENTER HOME): TAP -> "How much?" Keypad Screen
+           ========================================================= -->
+      <section class="tab-view active" id="view-tap" aria-label="Tap Expense Entry">
+        <!-- Amount Section -->
+        <div class="tap-amount-section">
+          <div class="how-much-label">How much?</div>
+          <div class="tap-amount-row" id="tap-amount-row">
+            <span class="tap-currency" id="tap-currency">₹</span>
+            <span class="tap-digits" id="tap-digits">0</span>
+          </div>
+          <div class="tap-amount-divider"></div>
+        </div>
+
+        <!-- Horizontal Category Pills -->
+        <div class="tap-categories-strip" id="tap-category-strip" role="listbox" aria-label="Categories"></div>
+
+        <!-- Date Row: Today | Yesterday | Pick date -->
+        <div class="tap-date-row">
+          <button type="button" class="tap-date-btn active" id="date-btn-today">Today</button>
+          <button type="button" class="tap-date-btn" id="date-btn-yesterday">Yesterday</button>
+          <label class="tap-date-btn" id="date-btn-pick" for="native-date-picker">
+            <span id="pick-date-label">Pick date</span>
+            <input type="date" id="native-date-picker" class="hidden-date-input" aria-label="Pick date" />
+          </label>
+        </div>
+
+        <!-- Note & Credit Row -->
+        <div class="tap-note-credit-row">
+          <input
+            type="text"
+            id="tap-note-input"
+            class="tap-note-input"
+            placeholder="+ add note"
+            maxlength="80"
+            autocomplete="off"
+            enterkeyhint="done"
+          />
+          <button type="button" class="tap-credit-pill" id="tap-credit-btn">Credit</button>
+        </div>
+
+        <!-- 3x4 Minimal Dark Keypad + Save Button -->
+        <div class="tap-keypad-section">
+          <div class="tap-keypad-grid" id="tap-keypad">
+            <button type="button" class="tap-key" data-key="1">1</button>
+            <button type="button" class="tap-key" data-key="2">2</button>
+            <button type="button" class="tap-key" data-key="3">3</button>
+
+            <button type="button" class="tap-key" data-key="4">4</button>
+            <button type="button" class="tap-key" data-key="5">5</button>
+            <button type="button" class="tap-key" data-key="6">6</button>
+
+            <button type="button" class="tap-key" data-key="7">7</button>
+            <button type="button" class="tap-key" data-key="8">8</button>
+            <button type="button" class="tap-key" data-key="9">9</button>
+
+            <button type="button" class="tap-key" data-key=".">.</button>
+            <button type="button" class="tap-key" data-key="0">0</button>
+            <button type="button" class="tap-key" data-key="backspace" aria-label="Backspace">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="19" y1="12" x2="5" y2="12"></line>
+                <polyline points="12 19 5 12 12 5"></polyline>
+              </svg>
+            </button>
+          </div>
+
+          <button type="button" class="tap-save-btn" id="tap-save-btn">Save</button>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           TAB 3 (RIGHT): ANALYTICS -> "Spending" Screen
+           ========================================================= -->
+      <section class="tab-view" id="view-analytics" aria-label="Spending Analytics">
+        <header class="tappy-top-header">
+          <div class="header-side"></div>
+          <h1 class="header-title">Spending</h1>
+          <div class="header-side right">
+            <button type="button" class="sliders-icon-btn open-settings-btn" aria-label="Open Settings">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <line x1="4" y1="7" x2="20" y2="7"></line>
+                <circle cx="9" cy="7" r="2.5" fill="#FFFFFF" stroke="#FFFFFF"></circle>
+                <line x1="4" y1="17" x2="20" y2="17"></line>
+                <circle cx="15" cy="17" r="2.5" fill="#FFFFFF" stroke="#FFFFFF"></circle>
+              </svg>
+            </button>
+          </div>
+        </header>
+
+        <!-- 3 Equal-Width Capsules: Week | Month | Year -->
+        <div class="spending-period-pills" id="spending-period-pills">
+          <button type="button" class="spending-period-pill" data-period="week">Week</button>
+          <button type="button" class="spending-period-pill active" data-period="month">Month</button>
+          <button type="button" class="spending-period-pill" data-period="year">Year</button>
+        </div>
+
+        <div class="spending-scroll-body">
+          <!-- Two Side-by-Side KPI Cards -->
+          <div class="spending-kpi-row">
+            <div class="spending-kpi-card">
+              <div class="kpi-card-label" id="spending-kpi-label">Spent this month</div>
+              <div class="kpi-card-value" id="spending-kpi-total">₹4,227</div>
+            </div>
+            <button type="button" class="spending-kpi-card kpi-card-interactive" id="budget-left-card" title="Tap to set monthly budget">
+              <div class="kpi-card-label">Budget left</div>
+              <div class="kpi-card-value" id="spending-budget-left">—</div>
+            </button>
+          </div>
+
+          <!-- Pace & Daily Average Info -->
+          <div class="spending-pace-block">
+            <div class="pace-headline">
+              On pace for <span class="pace-highlight" id="spending-pace-amount">₹6,674</span>
+            </div>
+            <div class="pace-subline" id="spending-daily-avg">₹222/day average</div>
+          </div>
+
+          <!-- "By category" Card -->
+          <div class="by-category-card">
+            <div class="by-category-header">By category</div>
+            <div class="by-category-list" id="spending-category-list"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           FULL-SCREEN OVERLAY: SETTINGS (Exact Match with Screenshots)
+           ========================================================= -->
+      <section class="settings-overlay hidden" id="view-settings" aria-label="Settings">
+        <header class="tappy-top-header settings-top-header">
+          <div class="header-side">
+            <button type="button" class="settings-back-btn" id="close-settings-btn" aria-label="Back">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 18 9 12 15 6"></polyline>
+              </svg>
+            </button>
+          </div>
+          <h1 class="header-title">Settings</h1>
+          <div class="header-side right"></div>
+        </header>
+
+        <div class="settings-scroll-body">
+          <!-- CURRENCY -->
+          <div class="tappy-settings-section">
+            <div class="section-eyebrow">CURRENCY</div>
+            <button type="button" class="tappy-card-row single-card" id="setting-currency-btn">
+              <span class="card-row-title">Currency</span>
+              <span class="card-row-value"><span id="setting-currency-label">₹ Indian Rupee</span> <span class="chevron">›</span></span>
+            </button>
+          </div>
+
+          <!-- LANGUAGE -->
+          <div class="tappy-settings-section">
+            <div class="section-eyebrow">LANGUAGE</div>
+            <button type="button" class="tappy-card-row single-card" id="setting-language-btn">
+              <span class="card-row-title">Language</span>
+              <span class="card-row-value">Automatic (English) <span class="chevron">›</span></span>
+            </button>
+          </div>
+
+          <!-- TAPPY PRO -->
+          <div class="tappy-settings-section">
+            <div class="section-eyebrow">TAPPY PRO</div>
+            <div class="tappy-grouped-card">
+              <button type="button" class="tappy-card-row" id="setting-pro-btn">
+                <div class="card-row-stack">
+                  <span class="card-row-title">Upgrade to Tappy Pro</span>
+                  <span class="card-row-sub">Pro features unlocked (<span class="teal-accent">Unlimited</span> expenses)</span>
+                </div>
+                <span class="chevron">›</span>
+              </button>
+              <button type="button" class="tappy-card-row" id="setting-restore-btn">
+                <span class="card-row-title">Restore Purchases</span>
+                <span class="chevron">›</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- BUDGET -->
+          <div class="tappy-settings-section">
+            <div class="section-eyebrow">BUDGET</div>
+            <button type="button" class="tappy-card-row single-card" id="setting-budget-btn">
+              <span class="card-row-title">Monthly Budget</span>
+              <span class="card-row-value"><span id="setting-budget-label">Not set</span> <span class="chevron">›</span></span>
+            </button>
+            <button type="button" class="tappy-card-row single-card" id="setting-cycle-btn" style="margin-top: 10px;">
+              <div class="card-row-stack">
+                <span class="card-row-title">Cycle starts on</span>
+                <span class="card-row-sub">Budget and monthly totals reset on this day</span>
+              </div>
+              <span class="card-row-value"><span id="setting-cycle-label">1st</span> <span class="chevron">›</span></span>
+            </button>
+          </div>
+
+          <!-- CATEGORIES -->
+          <div class="tappy-settings-section">
+            <div class="section-eyebrow">CATEGORIES</div>
+            <div class="section-helper">Tap a category to edit, drag to reorder.</div>
+            <div class="tappy-grouped-card">
+              <div id="settings-categories-list"></div>
+              <button type="button" class="tappy-add-cat-row" id="settings-add-category-btn">
+                + Add Category
+              </button>
+            </div>
+          </div>
+
+          <!-- QUICK LAUNCH -->
+          <div class="tappy-settings-section">
+            <div class="section-eyebrow">QUICK LAUNCH</div>
+
+            <div class="tappy-card-row single-card quick-launch-card">
+              <div class="ql-left">
+                <span class="ql-check">✓</span>
+                <span class="ql-green-title">Shortcut added</span>
+              </div>
+              <button type="button" class="ql-teal-pill" data-guide="shortcut">Re-add ›</button>
+            </div>
+
+            <div class="tappy-card-row single-card quick-launch-card">
+              <div class="ql-left">
+                <span class="ql-emoji">📱</span>
+                <span class="card-row-title">Back Tap</span>
+              </div>
+              <button type="button" class="ql-teal-pill" data-guide="backtap">See how ›</button>
+            </div>
+
+            <div class="tappy-card-row single-card quick-launch-card">
+              <div class="ql-left">
+                <span class="ql-emoji">🔒</span>
+                <span class="card-row-title">Lock Screen</span>
+              </div>
+              <button type="button" class="ql-teal-pill" data-guide="lockscreen">See how ›</button>
+            </div>
+
+            <div class="tappy-card-row single-card quick-launch-card">
+              <div class="ql-left">
+                <span class="ql-emoji">🎙️</span>
+                <span class="card-row-title">Siri</span>
+              </div>
+              <button type="button" class="ql-teal-pill" data-guide="siri">See how ›</button>
+            </div>
+          </div>
+
+          <!-- ICLOUD BACKUP -->
+          <div class="tappy-settings-section">
+            <div class="section-eyebrow">ICLOUD BACKUP</div>
+            <button type="button" class="tappy-card-row single-card" id="setting-icloud-btn">
+              <div class="card-row-stack">
+                <span class="card-row-title">iCloud Backup</span>
+                <span class="card-row-sub">Automatically backs up your expenses, restored on a new phone</span>
+              </div>
+              <span class="pro-badge">PRO</span>
+            </button>
+          </div>
+
+          <!-- DATA -->
+          <div class="tappy-settings-section">
+            <div class="section-eyebrow">DATA</div>
+            <div class="tappy-grouped-card">
+              <button type="button" class="tappy-card-row" id="export-csv-btn">
+                <span class="card-row-title">Export to CSV</span>
+                <span class="chevron">›</span>
+              </button>
+              <label class="tappy-card-row" for="import-csv-input">
+                <span class="card-row-title">Import from CSV</span>
+                <span class="chevron">›</span>
+                <input type="file" id="import-csv-input" accept=".csv,text/csv" class="hidden" />
+              </label>
+              <button type="button" class="tappy-card-row" id="clear-all-data-btn">
+                <span class="card-row-title danger-red">Clear All Data</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- FEEDBACK -->
+          <div class="tappy-settings-section">
+            <div class="section-eyebrow">FEEDBACK</div>
+            <div class="tappy-grouped-card">
+              <button type="button" class="tappy-card-row" id="rate-app-btn">
+                <div class="card-row-stack">
+                  <span class="card-row-title">Rate Tappy on the App Store</span>
+                  <span class="card-row-sub">A quick rating helps others find Tappy.</span>
+                </div>
+                <span class="chevron">›</span>
+              </button>
+              <button type="button" class="tappy-card-row" id="share-feedback-btn">
+                <div class="card-row-stack">
+                  <span class="card-row-title">Share Feedback</span>
+                  <span class="card-row-sub">Help shape Tappy. Takes about a minute.</span>
+                </div>
+                <span class="chevron">›</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- ABOUT -->
+          <div class="tappy-settings-section" style="padding-bottom: 36px;">
+            <div class="section-eyebrow">ABOUT</div>
+            <div class="tappy-grouped-card">
+              <button type="button" class="tappy-card-row" id="reset-demo-btn">
+                <div class="card-row-stack">
+                  <span class="card-row-title">Reset Sample Data</span>
+                  <span class="card-row-sub">Restore initial Tappy screenshot expenses</span>
+                </div>
+                <span class="chevron">›</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- =========================================================
+           BOTTOM 3-TAB BAR: History | Tap | Analytics
+           ========================================================= -->
+      <nav class="tappy-tab-bar" role="tablist" aria-label="Navigation">
+        <button type="button" class="tappy-tab-item" data-target="history" role="tab" aria-selected="false">
+          <svg class="tab-svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="4" y1="7" x2="10" y2="7"></line>
+            <line x1="14" y1="7" x2="20" y2="7"></line>
+            <line x1="4" y1="12" x2="10" y2="12"></line>
+            <line x1="14" y1="12" x2="20" y2="12"></line>
+            <line x1="4" y1="17" x2="10" y2="17"></line>
+            <line x1="14" y1="17" x2="20" y2="17"></line>
+          </svg>
+          <span class="tappy-tab-label">History</span>
+        </button>
+
+        <button type="button" class="tappy-tab-item active" data-target="tap" role="tab" aria-selected="true">
+          <svg class="tab-svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="12" cy="12" r="9.5"></circle>
+            <circle cx="12" cy="12" r="5.5"></circle>
+            <circle cx="12" cy="12" r="2" fill="currentColor"></circle>
+          </svg>
+          <span class="tappy-tab-label">Tap</span>
+        </button>
+
+        <button type="button" class="tappy-tab-item" data-target="analytics" role="tab" aria-selected="false">
+          <svg class="tab-svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 4 4 20 20 20"></polyline>
+            <polyline points="7 15 11 11 14 14 19 8"></polyline>
+            <polyline points="15 8 19 8 19 12"></polyline>
+          </svg>
+          <span class="tappy-tab-label">Analytics</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- =========================================================
+         MODAL SHEET 1: ADD / EDIT CATEGORY
+         ========================================================= -->
+    <div class="tappy-modal-backdrop hidden" id="category-sheet-backdrop">
+      <div class="tappy-bottom-sheet" role="dialog" aria-labelledby="cat-sheet-title">
+        <div class="sheet-handle"></div>
+        <div class="sheet-top-bar">
+          <button type="button" class="sheet-btn" id="cat-sheet-cancel">Cancel</button>
+          <h3 class="sheet-heading" id="cat-sheet-title">Edit Category</h3>
+          <button type="button" class="sheet-btn sheet-btn-primary" id="cat-sheet-save">Save</button>
+        </div>
+
+        <div class="sheet-content">
+          <div class="cat-preview-wrap">
+            <div class="tap-cat-pill selected" id="cat-live-preview">
+              <span id="cat-preview-emoji">🍔</span>
+              <span id="cat-preview-name">Food</span>
+            </div>
+          </div>
+
+          <div class="sheet-field">
+            <label class="sheet-label" for="cat-name-input">NAME</label>
+            <input type="text" id="cat-name-input" class="sheet-text-input" placeholder="Category name" maxlength="24" />
+          </div>
+
+          <div class="sheet-field">
+            <label class="sheet-label" for="cat-emoji-input">EMOJI (TAP OR TYPE ANY iOS EMOJI)</label>
+            <input type="text" id="cat-emoji-input" class="sheet-text-input" maxlength="4" placeholder="🍔" />
+            <div class="emoji-grid" id="emoji-grid-picker"></div>
+          </div>
+
+          <div class="sheet-field">
+            <label class="sheet-label">ACCENT COLOR</label>
+            <div class="color-grid" id="color-swatch-grid"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================
+         MODAL SHEET 2: EDIT EXPENSE
+         ========================================================= -->
+    <div class="tappy-modal-backdrop hidden" id="expense-sheet-backdrop">
+      <div class="tappy-bottom-sheet" role="dialog" aria-labelledby="exp-sheet-title">
+        <div class="sheet-handle"></div>
+        <div class="sheet-top-bar">
+          <button type="button" class="sheet-btn" id="exp-sheet-cancel">Cancel</button>
+          <h3 class="sheet-heading" id="exp-sheet-title">Edit Expense</h3>
+          <button type="button" class="sheet-btn sheet-btn-primary" id="exp-sheet-save">Save</button>
+        </div>
+
+        <div class="sheet-content">
+          <div class="sheet-field">
+            <label class="sheet-label" for="edit-exp-amount">AMOUNT</label>
+            <input type="number" id="edit-exp-amount" class="sheet-text-input large-num" step="0.01" min="0.01" />
+          </div>
+
+          <div class="sheet-field">
+            <label class="sheet-label">CATEGORY</label>
+            <div class="sheet-cat-pills" id="edit-exp-cat-grid"></div>
+          </div>
+
+          <div class="sheet-field">
+            <label class="sheet-label" for="edit-exp-note">NOTE</label>
+            <input type="text" id="edit-exp-note" class="sheet-text-input" placeholder="Add note..." maxlength="80" />
+          </div>
+
+          <div class="sheet-field">
+            <label class="sheet-label" for="edit-exp-datetime">DATE &amp; TIME</label>
+            <input type="datetime-local" id="edit-exp-datetime" class="sheet-text-input" />
+          </div>
+
+          <button type="button" class="sheet-danger-btn" id="exp-sheet-delete">Delete Expense</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- =========================================================
+         MODAL SHEET 3: MONTHLY BUDGET / CYCLE / CURRENCY / BACKUP / DRILLDOWN
+         ========================================================= -->
+    <div class="tappy-modal-backdrop hidden" id="generic-sheet-backdrop">
+      <div class="tappy-bottom-sheet" role="dialog" aria-labelledby="generic-sheet-title">
+        <div class="sheet-handle"></div>
+        <div class="sheet-top-bar">
+          <button type="button" class="sheet-btn" id="generic-sheet-close">Close</button>
+          <h3 class="sheet-heading" id="generic-sheet-title">Details</h3>
+          <button type="button" class="sheet-btn sheet-btn-primary" id="generic-sheet-action" style="visibility: hidden;">Save</button>
+        </div>
+        <div class="sheet-content" id="generic-sheet-body"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="./db.js"></script>
+  <script src="./app.js"></script>
+</body>
+</html>
