@@ -614,7 +614,9 @@ input[type="number"] {
   color: #5C5C62;
 }
 
-/* Swipeable Expense Row (Supports Swipe Left & Swipe Right for Edit / Delete) */
+/* Swipeable Expense Row:
+   - Swipe Right (->) reveals Edit button on the left side
+   - Swipe Left  (<-) reveals Delete button on the right side */
 .expense-swipe-wrap {
   position: relative;
   overflow: hidden;
@@ -626,7 +628,7 @@ input[type="number"] {
   position: absolute;
   top: 0;
   bottom: 0;
-  width: 144px;
+  width: 88px;
   display: flex;
   align-items: stretch;
   z-index: 1;
@@ -650,9 +652,9 @@ input[type="number"] {
 }
 
 .swipe-action-btn {
-  flex: 1;
+  width: 100%;
   height: 100%;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
   color: #FFFFFF;
   display: flex;

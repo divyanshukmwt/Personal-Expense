@@ -422,7 +422,7 @@
     let dragging = false;
     let movedHorizontally = false;
 
-    const ACTION_WIDTH = 144;
+    const ACTION_WIDTH = 88;
 
     const setOffset = (x, animate = true) => {
       currentX = x;
@@ -440,23 +440,22 @@
       }
     };
 
-    rowEl.addEventListener('touchstart', (e) => {
-      if (e.touches.length !== 1) return;
+    const onStart = (clientX, clientY) => {
       if (activeSwipeCloseFn && activeSwipeCloseFn !== closeRow) {
         activeSwipeCloseFn();
       }
-      startX = e.touches[0].clientX;
-      startY = e.touches[0].clientY;
+      startX = clientX;
+      startY = clientY;
       currentX = baseOffset;
       dragging = true;
       movedHorizontally = false;
       rowEl.style.transition = 'none';
-    }, { passive: true });
+    };
 
-    rowEl.addEventListener('touchmove', (e) => {
+    const onMove = (clientX, clientY) => {
       if (!dragging) return;
-      const dx = e.touches[0].clientX - startX;
-      const dy = e.touches[0].clientY - startY;
+      const dx = clientX - startX;
+      const dy = clientY - startY;
 
       if (!movedHorizontally && Math.abs(dy) > Math.abs(dx) && Math.abs(dx) < 12) {
         dragging = false;
@@ -464,36 +463,67 @@
         return;
       }
 
-      if (Math.abs(dx) > 8) {
+      if (Math.abs(dx) > 6) {
         movedHorizontally = true;
       }
 
-      // Clamp between -160px (swipe left -> right buttons) and +160px (swipe right -> left buttons)
-      const nextX = Math.max(-160, Math.min(160, baseOffset + dx));
+      // Clamp between -104px (swipe left -> Delete button on right) and +104px (swipe right -> Edit button on left)
+      const nextX = Math.max(-104, Math.min(104, baseOffset + dx));
       setOffset(nextX, false);
-    }, { passive: true });
+    };
 
-    rowEl.addEventListener('touchend', () => {
+    const onEnd = () => {
       if (!dragging) return;
       dragging = false;
 
-      // Never auto-delete on swipe! Only snap open to show Edit & Delete buttons on that side
-      if (currentX <= -40) {
+      // Never auto-delete on swipe!
+      // Swipe Left (<-) snaps open to -88px showing Delete button on the right
+      // Swipe Right (->) snaps open to +88px showing Edit button on the left
+      if (currentX <= -34) {
         baseOffset = -ACTION_WIDTH;
         setOffset(-ACTION_WIDTH, true);
         activeSwipeCloseFn = closeRow;
-      } else if (currentX >= 40) {
+      } else if (currentX >= 34) {
         baseOffset = ACTION_WIDTH;
         setOffset(ACTION_WIDTH, true);
         activeSwipeCloseFn = closeRow;
       } else {
         closeRow();
       }
+    };
+
+    // Touch events (iPhone)
+    rowEl.addEventListener('touchstart', (e) => {
+      if (e.touches.length !== 1) return;
+      onStart(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: true });
+
+    rowEl.addEventListener('touchmove', (e) => {
+      if (!dragging || e.touches.length !== 1) return;
+      onMove(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: true });
+
+    rowEl.addEventListener('touchend', onEnd);
+    rowEl.addEventListener('touchcancel', onEnd);
+
+    // Mouse drag support (for testing on PC/Mac)
+    rowEl.addEventListener('mousedown', (e) => {
+      if (e.button !== 0) return;
+      onStart(e.clientX, e.clientY);
+      const onMouseMove = (me) => onMove(me.clientX, me.clientY);
+      const onMouseUp = () => {
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
+        onEnd();
+      };
+      window.addEventListener('mousemove', onMouseMove);
+      window.addEventListener('mouseup', onMouseUp);
     });
 
     return {
       closeRow,
-      isOpen: () => baseOffset !== 0 || movedHorizontally
+      wasDragged: () => movedHorizontally,
+      isOpen: () => baseOffset !== 0
     };
   }
 
@@ -567,19 +597,17 @@
         const wrap = document.createElement('div');
         wrap.className = 'expense-swipe-wrap';
 
-        // Left action drawer (revealed when swiping right)
+        // Left action drawer (revealed when swiping RIGHT -> shows Edit button)
         const leftActions = document.createElement('div');
         leftActions.className = 'swipe-actions-left';
         leftActions.innerHTML = `
           <button type="button" class="swipe-action-btn swipe-btn-edit">Edit</button>
-          <button type="button" class="swipe-action-btn swipe-btn-delete">Delete</button>
         `;
 
-        // Right action drawer (revealed when swiping left)
+        // Right action drawer (revealed when swiping LEFT <- shows Delete button)
         const rightActions = document.createElement('div');
         rightActions.className = 'swipe-actions-right';
         rightActions.innerHTML = `
-          <button type="button" class="swipe-action-btn swipe-btn-edit">Edit</button>
           <button type="button" class="swipe-action-btn swipe-btn-delete">Delete</button>
         `;
 
@@ -607,22 +635,22 @@
 
         const swipeCtrl = attachSwipeActions(wrap, row, leftActions, rightActions);
 
-        // Bind Edit & Delete buttons on both sides
-        [leftActions, rightActions].forEach((drawer) => {
-          drawer.querySelector('.swipe-btn-edit').addEventListener('click', (e) => {
-            e.stopPropagation();
-            swipeCtrl.closeRow();
-            openEditExpenseModal(exp.id);
-          });
-          drawer.querySelector('.swipe-btn-delete').addEventListener('click', (e) => {
-            e.stopPropagation();
-            swipeCtrl.closeRow();
-            deleteExpenseWithUndo(exp);
-          });
+        // Swipe Right -> Tap Edit button
+        leftActions.querySelector('.swipe-btn-edit').addEventListener('click', (e) => {
+          e.stopPropagation();
+          swipeCtrl.closeRow();
+          openEditExpenseModal(exp.id);
+        });
+
+        // Swipe Left -> Tap Delete button
+        rightActions.querySelector('.swipe-btn-delete').addEventListener('click', (e) => {
+          e.stopPropagation();
+          swipeCtrl.closeRow();
+          deleteExpenseWithUndo(exp);
         });
 
         row.addEventListener('click', () => {
-          if (swipeCtrl.isOpen()) {
+          if (swipeCtrl.wasDragged() || swipeCtrl.isOpen()) {
             swipeCtrl.closeRow();
             return;
           }
