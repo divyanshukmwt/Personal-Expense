@@ -186,8 +186,11 @@ async function apiHandler(req, res) {
   const host = String(req.headers.host || 'localhost:3000').split(',')[0].trim();
   const rawUrl = req.url || '/';
   const qIdx = rawUrl.indexOf('?');
-  const pathname = decodeURIComponent(qIdx >= 0 ? rawUrl.slice(0, qIdx) : rawUrl);
   const searchParams = new URLSearchParams(qIdx >= 0 ? rawUrl.slice(qIdx + 1) : '');
+  const routedSubpath = searchParams.get('__route');
+  const pathname = routedSubpath
+    ? `/api/${routedSubpath.replace(/^\/+/, '')}`
+    : decodeURIComponent(qIdx >= 0 ? rawUrl.slice(0, qIdx) : rawUrl);
 
   // 1. GET /api/state
   if (pathname === '/api/state' && req.method === 'GET') {
